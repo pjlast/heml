@@ -1,0 +1,10 @@
+(menhir
+  (modules parser))
+
+(ocamllex lexer)
+
+(library
+ (name heml)
+ (package heml)
+ (modules html run parser lexer)
+ (libraries core fmt))

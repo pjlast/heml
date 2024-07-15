@@ -1,0 +1,6 @@
+(executable
+ (package heml)
+ (public_name heml)
+ (name main)
+ (libraries heml core)
+ (preprocess (pps ppx_heml ppx_eml)))
