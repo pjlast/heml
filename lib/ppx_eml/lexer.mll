@@ -25,12 +25,12 @@ let peek_next_six_chars lexbuf =
   let buf_len = Bytes.length lexbuf.Lexing.lex_buffer in
   if pos + 5 < buf_len then
     Some (Bytes.get lexbuf.Lexing.lex_buffer pos,
-    Bytes.get lexbuf.Lexing.lex_buffer (pos + 1),
-    Bytes.get lexbuf.Lexing.lex_buffer (pos + 2),
-    Bytes.get lexbuf.Lexing.lex_buffer (pos + 3),
-    Bytes.get lexbuf.Lexing.lex_buffer (pos + 4),
-    Bytes.get lexbuf.Lexing.lex_buffer (pos + 5)
-    )
+          Bytes.get lexbuf.Lexing.lex_buffer (pos + 1),
+          Bytes.get lexbuf.Lexing.lex_buffer (pos + 2),
+          Bytes.get lexbuf.Lexing.lex_buffer (pos + 3),
+          Bytes.get lexbuf.Lexing.lex_buffer (pos + 4),
+          Bytes.get lexbuf.Lexing.lex_buffer (pos + 5)
+         )
   else
     None
 
@@ -40,9 +40,9 @@ let clone_pos {Lexing.pos_cnum; pos_lnum; pos_bol; pos_fname} = {Lexing.pos_cnum
 let new_line lexbuf =
   let pos = lexbuf.lex_curr_p in
   lexbuf.lex_curr_p <- { pos with
-    pos_lnum = pos.pos_lnum + 1;
-    pos_bol = pos.pos_cnum + 1;
-  }
+                         pos_lnum = pos.pos_lnum + 1;
+                         pos_bol = pos.pos_cnum + 1;
+                       }
 }
 
 rule read =
@@ -60,17 +60,17 @@ parse
 | _ { let buf = (Buffer.create 30) in Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf lexbuf }
 
 and read_string buf =
-  parse
+    parse
   | '\n' { Lexing.new_line lexbuf; Buffer.add_char buf ('\n');
-    match peek_next_char lexbuf with
-    | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf)
-    | _ -> read_string buf lexbuf
-    }
+           match peek_next_char lexbuf with
+           | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf)
+           | _ -> read_string buf lexbuf
+         }
   | [^ '<' '%' '>' '\n']* { Buffer.add_string buf (Lexing.lexeme lexbuf);
-    match peek_next_char lexbuf with
-      | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf)
-      | _ -> read_string buf lexbuf
-    }
+                            match peek_next_char lexbuf with
+                            | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf)
+                            | _ -> read_string buf lexbuf
+                          }
   | _ { STRING (Buffer.contents buf) }
 
 and read_string_block buf sp =
