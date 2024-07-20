@@ -7,36 +7,36 @@
 (source
  (github username/reponame))
 
-(authors "Author Name")
+(authors "Petri-Johan Last")
 
-(maintainers "Maintainer Name")
+(maintainers "Petri-Johan Last")
 
 (license LICENSE)
 
-(documentation https://url/to/documentation)
+(documentation https://github.com/pjlast/heml)
 
 (using menhir 3.0)
 
 (package
  (name heml)
- (synopsis "A short synopsis")
- (description "A longer description")
+ (synopsis "PPX for deriving HTML templates")
+ (description "PPX for deriving HTML templates. Includes %heml")
  (depends ocaml dune ppx_eml)
  (tags
   (topics "to describe" your project)))
 
 (package
  (name ppx_heml)
- (synopsis "PPX for deriving octane tables, queries and more")
- (description "PPX for deriving octane tables, queries and more. Includes %query, %table")
+ (synopsis "PPX for deriving HTML templates")
+ (description "PPX for deriving HTML templates. Includes %heml")
  (depends ocaml dune ppxlib heml)
  (tags
   (topics "to describe" your project)))
 
 (package
  (name ppx_eml)
- (synopsis "PPX for deriving octane tables, queries and more")
- (description "PPX for deriving octane tables, queries and more. Includes %query, %table")
+ (synopsis "PPX for deriving embedded OCaml templates")
+ (description "PPX for deriving embedded OCaml templates. Includes %eml")
  (depends ocaml dune ppxlib heml)
  (tags
   (topics "to describe" your project)))
