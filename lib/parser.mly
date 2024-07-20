@@ -9,7 +9,6 @@
 %token <string> OCAML_CODE
 %token <string> STRING_BLOCK
 %token EOF
-
 %start <Html.el list> prog
 %%
 
@@ -27,13 +26,13 @@ element:
         raise (Html.Wrong_closing_tag {tag_name = closing_name; expected_tag_name = name})
       else
         Html.Element { name = name; contents = contents }
-    }
+      }
   | contents = CONTENTS {
-    Html.Text contents
-  }
+      Html.Text contents
+    }
   | code = OCAML_CODE; PERCENTAGE; RIGHT_ANGLE {
-      Html.Ocaml_code code
-  }
+      Html.Ocaml_code { code; contents = [] }
+    }
 
 content:
   | c = CONTENTS { c }

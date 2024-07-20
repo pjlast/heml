@@ -1,0 +1,37 @@
+lib: [
+  "_build/install/default/lib/ppx_eml/META"
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml.cmi" {"__private__/ppx_eml/.public_cmi/ppx_eml.cmi"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml.cmt" {"__private__/ppx_eml/.public_cmi/ppx_eml.cmt"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml__Eml.cmi" {"__private__/ppx_eml/.public_cmi/ppx_eml__Eml.cmi"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml__Eml.cmt" {"__private__/ppx_eml/.public_cmi/ppx_eml__Eml.cmt"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml__Lexer.cmi" {"__private__/ppx_eml/.public_cmi/ppx_eml__Lexer.cmi"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml__Lexer.cmt" {"__private__/ppx_eml/.public_cmi/ppx_eml__Lexer.cmt"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml__Parser.cmi" {"__private__/ppx_eml/.public_cmi/ppx_eml__Parser.cmi"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml__Parser.cmt" {"__private__/ppx_eml/.public_cmi/ppx_eml__Parser.cmt"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml__Parser.cmti" {"__private__/ppx_eml/.public_cmi/ppx_eml__Parser.cmti"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml__Ppx.cmi" {"__private__/ppx_eml/.public_cmi/ppx_eml__Ppx.cmi"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml__Ppx.cmt" {"__private__/ppx_eml/.public_cmi/ppx_eml__Ppx.cmt"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml__Run.cmi" {"__private__/ppx_eml/.public_cmi/ppx_eml__Run.cmi"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/.public_cmi/ppx_eml__Run.cmt" {"__private__/ppx_eml/.public_cmi/ppx_eml__Run.cmt"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/eml.ml" {"__private__/ppx_eml/eml.ml"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/lexer.ml" {"__private__/ppx_eml/lexer.ml"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/parser.ml" {"__private__/ppx_eml/parser.ml"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/parser.mli" {"__private__/ppx_eml/parser.mli"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx.ml" {"__private__/ppx_eml/ppx.ml"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx_eml.a" {"__private__/ppx_eml/ppx_eml.a"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx_eml.cma" {"__private__/ppx_eml/ppx_eml.cma"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx_eml.cmx" {"__private__/ppx_eml/ppx_eml.cmx"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx_eml.cmxa" {"__private__/ppx_eml/ppx_eml.cmxa"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx_eml.ml" {"__private__/ppx_eml/ppx_eml.ml"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx_eml__Eml.cmx" {"__private__/ppx_eml/ppx_eml__Eml.cmx"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx_eml__Lexer.cmx" {"__private__/ppx_eml/ppx_eml__Lexer.cmx"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx_eml__Parser.cmx" {"__private__/ppx_eml/ppx_eml__Parser.cmx"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx_eml__Ppx.cmx" {"__private__/ppx_eml/ppx_eml__Ppx.cmx"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx_eml__Run.cmx" {"__private__/ppx_eml/ppx_eml__Run.cmx"}
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/run.ml" {"__private__/ppx_eml/run.ml"}
+  "_build/install/default/lib/ppx_eml/dune-package"
+  "_build/install/default/lib/ppx_eml/opam"
+]
+libexec: [
+  "_build/install/default/lib/ppx_eml/__private__/ppx_eml/ppx_eml.cmxs" {"__private__/ppx_eml/ppx_eml.cmxs"}
+]

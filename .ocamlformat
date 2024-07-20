@@ -1,6 +1,9 @@
 version = 0.26.2
-profile = janestreet
+profile = ocamlformat
 
 margin = 80
 doc-comments-padding = 100
 exp-grouping = preserve
+break-separators=before
+break-collection-expressions=fit-or-vertical
+type-decl=sparse
