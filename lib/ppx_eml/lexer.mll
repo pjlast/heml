@@ -47,31 +47,29 @@ let new_line lexbuf =
 
 rule read =
 parse
-| '\n' { Lexing.new_line lexbuf; STRING "\n" }
+| '\n' { let sp = clone_pos lexbuf.Lexing.lex_curr_p in Lexing.new_line lexbuf; let ep = clone_pos lexbuf.Lexing.lex_curr_p in STRING ("\n", sp, ep) }
 | "<%s=" { read_string_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | "<%i=" { read_int_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
-| "<%=" { read_code_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
-| "<%" { read_code_continue_block (Buffer.create 30) (clone_pos lexbuf.lex_start_p) lexbuf }
+| "<%" { read_code_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | '%' { PERCENTAGE }
 | '>' { GT }
-| "<% end %>" { END }
-| "<% ); %>" { BRACEEND }
 | eof { EOF }
-| _ { let buf = (Buffer.create 30) in Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf lexbuf }
+| _ { let sp = clone_pos lexbuf.Lexing.lex_curr_p in let buf = (Buffer.create 30) in Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf sp lexbuf }
 
-and read_string buf =
+and read_string buf sp =
     parse
   | '\n' { Lexing.new_line lexbuf; Buffer.add_char buf ('\n');
            match peek_next_char lexbuf with
-           | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf)
-           | _ -> read_string buf lexbuf
+           | None -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
+           | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
+           | _ -> read_string buf sp lexbuf
          }
   | [^ '<' '%' '>' '\n']* { Buffer.add_string buf (Lexing.lexeme lexbuf);
                             match peek_next_char lexbuf with
-                            | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf)
-                            | _ -> read_string buf lexbuf
+                            | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
+                            | _ -> read_string buf sp lexbuf
                           }
-  | _ { STRING (Buffer.contents buf) }
+  | _ { STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p) }
 
 and read_string_block buf sp =
     parse
@@ -110,16 +108,4 @@ and read_code_block buf sp =
       | Some ('%', '>') -> let ep = lexbuf.Lexing.lex_curr_p in
         CODE_BLOCK (Buffer.contents buf, sp, ep)
       | _ -> read_code_block buf sp lexbuf
-    }
-
-and read_code_continue_block buf sp =
-    parse
-  | _ {
-      let c = Lexing.lexeme lexbuf in
-      if c = "\n" then
-        Lexing.new_line lexbuf;
-      Buffer.add_string buf (c);
-      match peek_next_two_chars lexbuf with
-      | Some ('%', '>') -> CODE_CONTINUE_BLOCK (Buffer.contents buf, sp, sp)
-      | _ -> read_code_continue_block buf sp lexbuf
     }

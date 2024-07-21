@@ -1,8 +1,19 @@
 open Base
 module I = Ocaml_common.Parser.MenhirInterpreter
 
+(** [string_of_int v] returns the string representation of [v].
+    
+    This just calls [Base.Int.to_string v], but is provided so that
+    consumers don't need to open Base in order to use the ppx. *)
+let string_of_int (v : int) = Base.Int.to_string v
+
 type string_template =
   { str: string
+  ; loc_start: Lexing.position
+  ; loc_end: Lexing.position }
+
+type str =
+  { text: string
   ; loc_start: Lexing.position
   ; loc_end: Lexing.position }
 
@@ -13,48 +24,12 @@ type code_template =
   ; loc_start: Lexing.position }
 
 and string_block =
-  | Str of string
+  | Str of str
   | Str_tmpl of string_template
   | Int_tmpl of string_template
   | Code_tmpl of code_template
 
-let rec string_block_to_string (b : Buffer.t) = function
-  | Str s ->
-      Buffer.add_string b ("Buffer.add_string b \"" ^ s ^ "\";")
-  | Str_tmpl s ->
-      Buffer.add_string b ("Buffer.add_string b " ^ s.str ^ ";")
-  | Int_tmpl i ->
-      Buffer.add_string b
-        ("Buffer.add_string b (string_of_int ( " ^ i.str ^ " ));")
-  | Code_tmpl ct ->
-      code_tmpl_to_string b ct
-
-and repeat ~n s =
-  let rec aux ~n' str = if n' = 1 then str else s ^ aux ~n':(n' - 1) str in
-  aux ~n':n s
-
-and code_tmpl_to_string b ct =
-  Buffer.add_string b ct.code ;
-  List.iter ct.contents ~f:(string_block_to_string b) ;
-  let () =
-    match ct.next_code_template with
-    | Some next_ct ->
-        code_tmpl_to_string b next_ct
-    | None ->
-        Buffer.add_string b " ); " ; ()
-  in
-  ()
-
-let succeed v = Ok v
-
-let fail lexbuf _ =
-  let msg =
-    Stdlib.Format.sprintf "At offset %d: syntax error.\n%!"
-      (Lexing.lexeme_start lexbuf)
-  in
-  Error msg
-
-let read_token parser token start_pos end_pos =
+let process_token parser token start_pos end_pos =
   let parser = I.offer parser (token, start_pos, end_pos) in
   let rec aux parser =
     match parser with
@@ -74,10 +49,10 @@ let read_token parser token start_pos end_pos =
 let rec read_until_eof parser lexbuf =
   match Ocaml_common.Lexer.token lexbuf with
   | EOF ->
-      Stdio.print_endline "EOF" ; parser
+      parser
   | token ->
       read_until_eof
-        (read_token parser token lexbuf.lex_start_p lexbuf.lex_curr_p)
+        (process_token parser token lexbuf.lex_start_p lexbuf.lex_curr_p)
         lexbuf
 
 let rec read_until_complete parser lexbuf =
@@ -87,79 +62,118 @@ let rec read_until_complete parser lexbuf =
   | _ ->
       let token = Ocaml_common.Lexer.token lexbuf in
       read_until_complete
-        (read_token parser token lexbuf.lex_curr_p lexbuf.lex_curr_p)
+        (process_token parser token lexbuf.lex_curr_p lexbuf.lex_curr_p)
         lexbuf
 
-let string_block_list_to_string b l =
-  Buffer.add_string b "let b = Buffer.create 100 in " ;
-  List.iter ~f:(string_block_to_string b) l ;
-  Buffer.add_string b "Buffer.contents b"
+(** [set_lexbuf_position lexbuf pos] sets the lexing buffer to the given
+    position.
+    This should be done before parsing the lexbuf to ensure that the resulting
+    positions are correct. *)
+let set_lexbuf_position (lexbuf : Lexing.lexbuf) (pos : Lexing.position) =
+  lexbuf.lex_curr_p <- pos ;
+  lexbuf.lex_start_p <- pos ;
+  lexbuf.lex_abs_pos <- pos.pos_cnum ;
+  lexbuf.lex_last_pos <- pos.pos_cnum ;
+  lexbuf.lex_last_action <- pos.pos_cnum
 
-let string_to_ast parser s =
-  Stdio.print_endline "String to ast" ;
-  let lexbuf = Lexing.from_string ("Buffer.add_string b \"" ^ s ^ "\";") in
-  read_until_eof parser lexbuf
+(** A text block represents a continuous block of plain text. *)
+module Text = struct
+  type t =
+    { text: string
+          (** The text itself. *)
+    ; loc_start: Lexing.position
+          (** The starting position of the block of text in the source
+              file. *)
+    ; loc_end: Lexing.position
+          (** The end position of the block of text in the source file. *) }
+end
 
-let string_template_to_ast parser loc_start1 {str; loc_start; loc_end} =
-  Stdio.print_endline "String template to ast" ;
-  let lexbuf = Lexing.from_string "Buffer.add_string b " in
-  let parser = read_until_eof parser lexbuf in
-  let lexbuf = Lexing.from_string (str ^ ";") in
-  lexbuf.lex_curr_p <- loc_start ;
-  lexbuf.lex_start_p <- loc_start ;
-  lexbuf.lex_abs_pos <- loc_start.pos_cnum ;
-  lexbuf.lex_last_pos <- loc_start.pos_cnum ;
-  lexbuf.lex_last_action <- loc_start.pos_cnum ;
-  read_until_eof parser lexbuf
+module String_block = struct
+  type t =
+    { field: string
+    ; loc_start: Lexing.position
+    ; loc_end: Lexing.position }
+end
 
-let int_template_to_ast parser {str; loc_start; loc_end} =
-  let lexbuf =
-    Lexing.from_string ("Buffer.add_string b (string_of_int " ^ str ^ ");")
-  in
-  read_until_eof parser lexbuf
+module Int_block = struct
+  type t =
+    { field: string
+    ; loc_start: Lexing.position
+    ; loc_end: Lexing.position }
+end
 
-let rec string_block_to_ast parser loc_start = function
-  | Str s ->
-      string_to_ast parser s
-  | Str_tmpl s ->
-      string_template_to_ast parser loc_start s
-  | Int_tmpl i ->
-      int_template_to_ast parser i
-  | Code_tmpl ct ->
-      code_tmpl_to_ast parser ct
+module Code_block = struct
+  type t =
+    { code: string
+    ; loc_start: Lexing.position
+    ; loc_end: Lexing.position }
+end
 
-and code_tmpl_to_ast parser {code; contents; next_code_template; loc_start} =
-  let lexbuf = Lexing.from_string code in
-  lexbuf.lex_curr_p <- loc_start ;
-  lexbuf.lex_start_p <- loc_start ;
-  lexbuf.lex_abs_pos <- loc_start.pos_cnum ;
-  lexbuf.lex_last_pos <- loc_start.pos_cnum ;
-  lexbuf.lex_last_action <- loc_start.pos_cnum ;
-  let parser = read_until_eof parser lexbuf in
-  let parser =
-    List.fold contents ~init:parser ~f:(fun parser block ->
-        string_block_to_ast parser loc_start block )
-  in
-  match next_code_template with
-  | Some next_ct ->
-      code_tmpl_to_ast parser next_ct
-  | None ->
-      let lexbuf = Lexing.from_string ");" in
-      let parser = read_until_eof parser lexbuf in
-      parser
+(** The embedded OCaml abstract syntax tree.
+    Because of the possibility of incomplete code blocks across multiple
+    lines, the AST needs to be parsed by an incremental OCaml parser,
+    with intermediate blocks also parsed by the same parser. *)
+module Ast = struct
+  type t =
+    | Text of Text.t
+    | String_block of String_block.t
+    | Int_block of Int_block.t
+    | Code_block of Code_block.t
+end
 
-let string_block_list_to_ast ~loc l =
-  let parser =
-    Ocaml_common.Parser.Incremental.parse_expression loc.Location.loc_start
-  in
-  let lexbuf = Lexing.from_string " (let b = Buffer.create 1000 in" in
-  let parser = read_until_eof parser lexbuf in
-  let parser =
-    List.fold l ~init:parser ~f:(fun parser block ->
-        string_block_to_ast parser loc.loc_start block )
-  in
-  let lexbuf = Lexing.from_string "Buffer.contents b) " in
-  let res = read_until_complete parser lexbuf in
-  let res = res |> Ppxlib.Parse.Of_ocaml.copy_expression in
-  Stdio.print_endline (res |> Ppxlib.Pprintast.string_of_expression) ;
-  res
+(** An EML AST parser. The parser uses an internal Menhir incremental
+      OCaml parser. *)
+module Parser = struct
+  type t = {parser: Parsetree.expression I.checkpoint}
+
+  let create ~loc_start =
+    let parser = Ocaml_common.Parser.Incremental.parse_expression loc_start in
+    let lexbuf = Lexing.from_string "(let b = Buffer.create 1000 in" in
+    let parser = read_until_eof parser lexbuf in
+    {parser}
+
+  (** [to_parsetree parser] returns the resulting expression from the parser,
+        which should evaluate to a string. *)
+  let to_parsetree (parser : t) =
+    let lexbuf = Lexing.from_string "Buffer.contents b)" in
+    read_until_complete parser.parser lexbuf
+
+  let parse_text (parser : t) (text : Text.t) =
+    let lexbuf =
+      Lexing.from_string
+        ("Buffer.add_string b {__heml_string|" ^ text.text ^ "|__heml_string};")
+    in
+    let parser = read_until_eof parser.parser lexbuf in
+    {parser= read_until_eof parser lexbuf}
+
+  let parse_string_block (parser : t) (sb : String_block.t) =
+    let lexbuf = Lexing.from_string "Buffer.add_string b " in
+    let parser = read_until_eof parser.parser lexbuf in
+    let lexbuf = Lexing.from_string (String.concat [sb.field; ";"]) in
+    set_lexbuf_position lexbuf sb.loc_start ;
+    {parser= read_until_eof parser lexbuf}
+
+  let parse_int_block (parser : t) (ib : Int_block.t) =
+    let lexbuf =
+      Lexing.from_string "Buffer.add_string b (Stdlib.string_of_int "
+    in
+    let parser = read_until_eof parser.parser lexbuf in
+    let lexbuf = Lexing.from_string (String.concat [ib.field; ");"]) in
+    set_lexbuf_position lexbuf ib.loc_start ;
+    {parser= read_until_eof parser lexbuf}
+
+  let parse_code_block (parser : t) (cb : Code_block.t) =
+    let lexbuf = Lexing.from_string cb.code in
+    set_lexbuf_position lexbuf cb.loc_start ;
+    {parser= read_until_eof parser.parser lexbuf}
+
+  let parse (parser : t) = function
+    | Ast.Text t ->
+        parse_text parser t
+    | String_block sb ->
+        parse_string_block parser sb
+    | Int_block ib ->
+        parse_int_block parser ib
+    | Code_block cb ->
+        parse_code_block parser cb
+end

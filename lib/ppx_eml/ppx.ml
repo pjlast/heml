@@ -46,7 +46,7 @@ let rec process_code_contents acc (els : Eml.string_block list) =
   | hd :: tl -> (
     match hd with
     | Eml.Str s ->
-        process_code_contents (Text_fragment ("{|" ^ s ^ "|}") :: acc) tl
+        process_code_contents (Text_fragment ("{|" ^ s.text ^ "|}") :: acc) tl
     | Eml.Str_tmpl st ->
         process_code_contents (Text_fragment ("(" ^ st.str ^ ")") :: acc) tl
     | Eml.Int_tmpl it ->
@@ -112,7 +112,12 @@ let expand ~ctxt eml =
   in
   match Run.parse ~loc_start:loc.loc_start eml with
   | Ok processed ->
-      processed |> Eml.string_block_list_to_ast ~loc
+      let parser = Eml.Parser.create ~loc_start:loc.loc_start in
+      let parser =
+        List.fold processed ~init:parser ~f:(fun parser block ->
+            Eml.Parser.parse parser block )
+      in
+      Eml.Parser.to_parsetree parser |> Ppxlib.Parse.Of_ocaml.copy_expression
       (* let b = Buffer.create 100 in
          Eml.string_block_list_to_string b processed ;
          Buffer.contents b |> Lexing.from_string |> Parse.expression *)

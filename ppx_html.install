@@ -1,0 +1,37 @@
+lib: [
+  "_build/install/default/lib/ppx_html/META"
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html.cmi" {"__private__/ppx_html/.public_cmi/ppx_html.cmi"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html.cmt" {"__private__/ppx_html/.public_cmi/ppx_html.cmt"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html__Html_ast.cmi" {"__private__/ppx_html/.public_cmi/ppx_html__Html_ast.cmi"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html__Html_ast.cmt" {"__private__/ppx_html/.public_cmi/ppx_html__Html_ast.cmt"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html__Lexer.cmi" {"__private__/ppx_html/.public_cmi/ppx_html__Lexer.cmi"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html__Lexer.cmt" {"__private__/ppx_html/.public_cmi/ppx_html__Lexer.cmt"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html__Parser.cmi" {"__private__/ppx_html/.public_cmi/ppx_html__Parser.cmi"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html__Parser.cmt" {"__private__/ppx_html/.public_cmi/ppx_html__Parser.cmt"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html__Parser.cmti" {"__private__/ppx_html/.public_cmi/ppx_html__Parser.cmti"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html__Ppx.cmi" {"__private__/ppx_html/.public_cmi/ppx_html__Ppx.cmi"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html__Ppx.cmt" {"__private__/ppx_html/.public_cmi/ppx_html__Ppx.cmt"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html__Run.cmi" {"__private__/ppx_html/.public_cmi/ppx_html__Run.cmi"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/.public_cmi/ppx_html__Run.cmt" {"__private__/ppx_html/.public_cmi/ppx_html__Run.cmt"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/html_ast.ml" {"__private__/ppx_html/html_ast.ml"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/lexer.ml" {"__private__/ppx_html/lexer.ml"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/parser.ml" {"__private__/ppx_html/parser.ml"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/parser.mli" {"__private__/ppx_html/parser.mli"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx.ml" {"__private__/ppx_html/ppx.ml"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx_html.a" {"__private__/ppx_html/ppx_html.a"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx_html.cma" {"__private__/ppx_html/ppx_html.cma"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx_html.cmx" {"__private__/ppx_html/ppx_html.cmx"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx_html.cmxa" {"__private__/ppx_html/ppx_html.cmxa"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx_html.ml" {"__private__/ppx_html/ppx_html.ml"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx_html__Html_ast.cmx" {"__private__/ppx_html/ppx_html__Html_ast.cmx"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx_html__Lexer.cmx" {"__private__/ppx_html/ppx_html__Lexer.cmx"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx_html__Parser.cmx" {"__private__/ppx_html/ppx_html__Parser.cmx"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx_html__Ppx.cmx" {"__private__/ppx_html/ppx_html__Ppx.cmx"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx_html__Run.cmx" {"__private__/ppx_html/ppx_html__Run.cmx"}
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/run.ml" {"__private__/ppx_html/run.ml"}
+  "_build/install/default/lib/ppx_html/dune-package"
+  "_build/install/default/lib/ppx_html/opam"
+]
+libexec: [
+  "_build/install/default/lib/ppx_html/__private__/ppx_html/ppx_html.cmxs" {"__private__/ppx_html/ppx_html.cmxs"}
+]
