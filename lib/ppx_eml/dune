@@ -10,6 +10,6 @@
  (flags
   (:standard -w -27))
  (modules parser lexer run eml ppx)
- (libraries ocaml-compiler-libs.common menhirLib ppxlib base stdio ppx_deriving.api)
+ (libraries ocaml-compiler-libs.common ppxlib base)
  (preprocess
   (pps ppxlib.metaquot)))
