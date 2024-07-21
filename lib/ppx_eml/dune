@@ -7,9 +7,7 @@
  (name ppx_eml)
  (kind ppx_deriver)
  (package ppx_eml)
- (flags
-  (:standard -w -27))
  (modules parser lexer run eml ppx)
- (libraries ocaml-compiler-libs.common ppxlib base)
+ (libraries ppxlib base)
  (preprocess
   (pps ppxlib.metaquot)))

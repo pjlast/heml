@@ -41,8 +41,9 @@ let process_token parser token start_pos end_pos =
         failwith "Rejected"
     | I.Accepted _ ->
         parser
-    | I.HandlingError env ->
-        aux (I.resume parser)
+    | I.HandlingError _ ->
+        failwith "Error"
+    (* aux (I.resume parser) *)
   in
   aux parser
 
