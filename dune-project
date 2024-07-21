@@ -37,7 +37,7 @@
  (name ppx_eml)
  (synopsis "PPX for deriving embedded OCaml templates")
  (description "PPX for deriving embedded OCaml templates. Includes %eml")
- (depends ocaml dune ppxlib heml)
+ (depends ocaml dune ppxlib heml ocaml-compiler-libs base)
  (tags
   (topics "to describe" your project)))
 
