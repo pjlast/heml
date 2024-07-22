@@ -1,5 +1,8 @@
 # heml
 
+> [!WARNING]
+> This library is still early in development and things may still change quite a bit.
+
 `heml` (HTML + Embedded ML) is a ppx extension for easy-to-use HTML templating directly in OCaml.
 
 It's a direct conversion of [Phoenix's HEEx templates](https://hexdocs.pm/phoenix_live_view/assigns-eex.html).
