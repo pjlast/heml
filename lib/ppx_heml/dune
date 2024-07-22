@@ -10,4 +10,4 @@
  (modules parser lexer run heml ppx)
  (libraries ppxlib base)
  (preprocess
-  (pps ppxlib.metaquot)))
+  (pps ppxlib.metaquot ppx_string)))

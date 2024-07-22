@@ -28,16 +28,6 @@ let rec read_until_eof parser lexbuf =
         (process_token parser token lexbuf.lex_start_p lexbuf.lex_curr_p)
         lexbuf
 
-let rec read_until_complete parser lexbuf =
-  match parser with
-  | I.Accepted res ->
-      res
-  | _ ->
-      let token = Ocaml_common.Lexer.token lexbuf in
-      read_until_complete
-        (process_token parser token lexbuf.lex_curr_p lexbuf.lex_curr_p)
-        lexbuf
-
 (** [set_lexbuf_position lexbuf pos] sets the lexing buffer to the given
     position.
     This should be done before parsing the lexbuf to ensure that the resulting
@@ -48,6 +38,21 @@ let set_lexbuf_position (lexbuf : Lexing.lexbuf) (pos : Lexing.position) =
   lexbuf.lex_abs_pos <- pos.pos_cnum ;
   lexbuf.lex_last_pos <- pos.pos_cnum ;
   lexbuf.lex_last_action <- pos.pos_cnum
+
+let parse_string ?loc parser str =
+  let lexbuf = Lexing.from_string str in
+  (match loc with Some loc -> set_lexbuf_position lexbuf loc | None -> ()) ;
+  read_until_eof parser lexbuf
+
+let rec read_until_complete parser lexbuf =
+  match parser with
+  | I.Accepted res ->
+      res
+  | _ ->
+      let token = Ocaml_common.Lexer.token lexbuf in
+      read_until_complete
+        (process_token parser token lexbuf.lex_curr_p lexbuf.lex_curr_p)
+        lexbuf
 
 (** A text block represents a continuous block of plain text. *)
 module Text = struct
@@ -125,11 +130,10 @@ module Parser = struct
 
   let create ~loc_start =
     let parser = Ocaml_common.Parser.Incremental.parse_expression loc_start in
-    let lexbuf =
-      Lexing.from_string
+    let parser =
+      parse_string parser
         {|(let b = Buffer.create 1000 in let write = Buffer.add_string b in|}
     in
-    let parser = read_until_eof parser lexbuf in
     {parser}
 
   (** [to_parsetree parser] returns the resulting expression from the parser,
@@ -139,68 +143,79 @@ module Parser = struct
     read_until_complete parser.parser lexbuf
 
   let parse_text (parser : t) (text : Text.t) =
-    let lexbuf =
-      Lexing.from_string
-        ("write {__heml_string|" ^ text.text ^ "|__heml_string};")
+    let parser =
+      parse_string parser.parser
+        {%string|write {__heml_string|%{text.text}|__heml_string};|}
     in
-    let parser = read_until_eof parser.parser lexbuf in
-    {parser= read_until_eof parser lexbuf}
+    {parser}
 
   let parse_string_block (parser : t) (sb : String_block.t) =
-    let lexbuf = Lexing.from_string "write" in
-    let parser = read_until_eof parser.parser lexbuf in
-    let lexbuf = Lexing.from_string (String.concat [sb.field; ";"]) in
-    set_lexbuf_position lexbuf sb.loc_start ;
-    {parser= read_until_eof parser lexbuf}
+    let parser = parse_string parser.parser "write" in
+    let parser =
+      parse_string ~loc:sb.loc_start parser (String.concat [sb.field; ";"])
+    in
+    {parser}
 
   let parse_int_block (parser : t) (ib : Int_block.t) =
-    let lexbuf = Lexing.from_string "write (Stdlib.string_of_int " in
-    let parser = read_until_eof parser.parser lexbuf in
-    let lexbuf = Lexing.from_string (String.concat [ib.field; ");"]) in
-    set_lexbuf_position lexbuf ib.loc_start ;
-    {parser= read_until_eof parser lexbuf}
+    let parser = parse_string parser.parser "write (Stdlib.string_of_int " in
+    let parser =
+      parse_string ~loc:ib.loc_start parser {%string|%{ib.field});|}
+    in
+    {parser}
 
   let parse_code_block (parser : t) (cb : Code_block.t) =
-    let lexbuf = Lexing.from_string cb.code in
-    set_lexbuf_position lexbuf cb.loc_start ;
-    {parser= read_until_eof parser.parser lexbuf}
+    let parser = parse_string ~loc:cb.loc_start parser.parser cb.code in
+    {parser}
 
   let rec parse_element (parser : t) (el : Element.t) =
-    let start_tag = String.concat ["<"; el.name] in
-    let lexbuf =
-      Lexing.from_string
-        ("write {__heml_element|" ^ start_tag ^ "|__heml_element};")
-    in
-    let parser = read_until_eof parser.parser lexbuf in
-    let parser =
-      List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
-          match v with
-          | String v ->
-              let lexbuf =
-                Lexing.from_string
-                  ( "write {__heml_attribute| " ^ k ^ "=\"" ^ v
-                  ^ "\"|__heml_attribute};" )
-              in
-              read_until_eof parser lexbuf
-          | Variable v ->
-              let lexbuf =
-                Lexing.from_string
-                  ( "write {__heml_attribute| " ^ k ^ "=\""
-                  ^ "|__heml_attribute};" )
-              in
-              let parser = read_until_eof parser lexbuf in
-              let lexbuf = Lexing.from_string ("write (" ^ v ^ {| ^ "\"");|}) in
-              read_until_eof parser lexbuf )
-    in
-    let lexbuf = Lexing.from_string "write \">\";" in
-    let parser = {parser= read_until_eof parser lexbuf} in
-    let parser = List.fold el.contents ~init:parser ~f:parse in
-    let end_tag = String.concat ["</"; el.name; ">"] in
-    let lexbuf =
-      Lexing.from_string
-        ("write {__heml_element|" ^ end_tag ^ "|__heml_element};")
-    in
-    {parser= read_until_eof parser.parser lexbuf}
+    if String.contains el.name '.' then
+      let name = String.chop_prefix_if_exists el.name ~prefix:"." in
+      let command = {%string|write (%{name}|} in
+      let command =
+        List.fold el.attributes ~init:command ~f:(fun command (k, v) ->
+            match v with
+            | String v ->
+                {%string|%{command} ~%{k}:{__heml_attr|%{v}|__heml_attr}|}
+            | Variable v ->
+                {%string|%{command} ~%{k}:%{v}|} )
+      in
+      if List.is_empty el.contents then
+        let command = command ^ ");" in
+        {parser= parse_string parser.parser command}
+      else
+        let parser = parse_string parser.parser command in
+        let contents =
+          {|(let b = Buffer.create 1000 in let write = Buffer.add_string b in|}
+        in
+        let parser = parse_string parser contents in
+        let parser = List.fold el.contents ~init:{parser} ~f:parse in
+        {parser= parse_string parser.parser "Buffer.contents b));"}
+    else
+      let start_tag = {%string|<%{el.name}|} in
+      let parser =
+        parse_string parser.parser
+          {%string|write {__heml_element|%{start_tag}|__heml_element};|}
+      in
+      let parser =
+        List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
+            match v with
+            | String v ->
+                parse_string parser
+                  {%string|write {__heml_attribute| %{k}="%{v}"|__heml_attribute};|}
+            | Variable v ->
+                let parser =
+                  parse_string parser
+                    {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
+                in
+                parse_string parser {%string|write (%{v} ^ "\"");|} )
+      in
+      let parser = parse_string parser "write \">\";" in
+      let parser = List.fold el.contents ~init:{parser} ~f:parse in
+      let parser =
+        parse_string parser.parser
+          {%string|write {__heml_element|</%{el.name}>|__heml_element};|}
+      in
+      {parser}
 
   and parse (parser : t) = function
     | Ast.Text t ->

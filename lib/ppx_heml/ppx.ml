@@ -11,10 +11,7 @@ let expand ~ctxt heml =
   match Run.parse ~loc_start:loc.loc_start heml with
   | Ok processed ->
       let parser = Heml.Parser.create ~loc_start:loc.loc_start in
-      let parser =
-        List.fold processed ~init:parser ~f:(fun parser block ->
-            Heml.Parser.parse parser block )
-      in
+      let parser = List.fold processed ~init:parser ~f:Heml.Parser.parse in
       Heml.Parser.to_parsetree parser |> Ppxlib.Parse.Of_ocaml.copy_expression
   | _ ->
       Location.raise_errorf ~loc "Error"

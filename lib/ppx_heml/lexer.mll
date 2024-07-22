@@ -57,7 +57,7 @@ parse
 | '>' { GT }
 | '<' { LT }
 | '=' { EQ }
-| "<" ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace*
+| "<" ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace*
   {
     let tag = Lexing.lexeme lexbuf in
     let len = String.length tag in
@@ -65,7 +65,7 @@ parse
     let tag = String.trim tag in
     read_start_tag tag [] lexbuf
   }
-| "</" ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* ">"
+| "</" ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace* ">"
   {
     let tag = Lexing.lexeme lexbuf in
     let len = String.length tag in
