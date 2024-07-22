@@ -92,6 +92,27 @@ If you need to write to the template inside a code block, you can use `write`:
 
 Internally heml uses a `Buffer.t` and each statement gets translated to some form of `Buffer.add_string`, which then returns a string using `Buffer.contents` at the end of the template.
 
+### Custom components
+
+You can also create re-usable components, which can be called in templates:
+
+```ocaml
+let my_button ~cls contents =
+  {%heml|<button class={cls}>
+  <%s= contents %>
+</button>
+|}
+
+let () = print_endline {%heml|<div>
+  Some content
+
+  <.button cls="btn-primary">Click me!</.button>
+</div>
+|}
+```
+
+Arguments need to be labelled arguments, and the final argument will be the contents of the component.
+
 ## Editor support
 
 Since heml is basically HEEx, you can use the [HEEx treesitter grammar](https://github.com/phoenixframework/tree-sitter-heex) for syntax highlighting.
