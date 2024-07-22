@@ -4,10 +4,11 @@ type user =
   { name: string
   ; age: int }
 
-let the_output () =
+let () =
   let users = [{name= "John"; age= 22}; {name= "Jane"; age= 23}] in
   let my_class = "title" in
-  {%heml|
+  Stdio.print_endline
+    {%heml|
 <h1 class={my_class}>
   Users
 </h1>
@@ -20,5 +21,3 @@ let the_output () =
 <%= ); %>
 </ul>
 |}
-
-let () = Stdio.print_endline (the_output ())
