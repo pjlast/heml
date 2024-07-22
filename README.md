@@ -88,3 +88,19 @@ If you need to write to the template inside a code block, you can use `write`:
 ```
 
 Internally heml uses a `Buffer.t` and each statement gets translated to some form of `Buffer.add_string`, which then returns a string using `Buffer.contents` at the end of the template.
+
+## Editor support
+
+Since heml is basically HEEx, you can use the [HEEx treesitter grammar](https://github.com/phoenixframework/tree-sitter-heex) for syntax highlighting.
+
+### Neovim
+
+To get nice highlighting in Neovim, add a `queries/ocaml/injections.scm` file to your `.config/nvim` with the following contents:
+
+```
+((quoted_extension
+            (attribute_id) @_attid
+            (quoted_string_content) @injection.content)
+  (#contains? @_attid "heml")
+  (#set! injection.language "heex"))
+```
