@@ -51,7 +51,7 @@ parse
 | '\n' { let sp = clone_pos lexbuf.Lexing.lex_curr_p in Lexing.new_line lexbuf; let ep = clone_pos lexbuf.Lexing.lex_curr_p in STRING ("\n", sp, ep) }
 | "<%s=" { read_string_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | "<%i=" { read_int_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
-| "<%" { read_code_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
+| "<%=" { read_code_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | '%' { PERCENTAGE }
 | "%>" { PERCENTAGEGT }
 | '>' { GT }
