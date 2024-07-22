@@ -165,7 +165,8 @@ module Parser = struct
     let start_tag = String.concat ["<"; el.name] in
     let start_tag =
       List.fold el.attributes ~init:start_tag ~f:(fun acc (k, v) ->
-          String.concat ~sep:" " [acc; k; "=\""; v; "\""] )
+          let attr = String.concat [k; "=\""; v; "\""] in
+          String.concat ~sep:" " [acc; attr] )
     in
     let start_tag = String.concat [start_tag; ">"] in
     let lexbuf =

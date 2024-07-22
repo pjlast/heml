@@ -45,7 +45,6 @@ template:
   | str = STRING { let (text, sp, ep) = str in Heml.Ast.Text { text = text; loc_start = sp; loc_end = ep } }
   | strtmpl = STRING_BLOCK; PERCENTAGEGT {
       let (s, sp, ep) = strtmpl in
-      print_endline (Printf.sprintf "%d %d" sp.Lexing.pos_lnum (ep.Lexing.pos_lnum + 1));
       Heml.Ast.String_block {
         field = s;
         loc_start = sp;

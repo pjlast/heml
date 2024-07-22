@@ -1,18 +1,17 @@
 open Base
 
+type user =
+  { name: string
+  ; age: int }
+
 let the_output () =
-  let nums = [1; 2; 3] in
-  let stv = 124 in
-  {%heml|Hello
-<%i= stv %>
-<% if stv = 123 then ( %>Stv is 123<% ) else ( %>Stv is not 123 <% ); %>
-<%
-  List.iter nums ~f:(fun n ->
-%><%i= n %>123<% ); %>
-<elmnt display url=this val='string with"spaces in it'>
-Some text over here
-<anotherelmnt><%i= stv %></anotherelmnt>
-</elmnt>
+  let users = [{name= "John"; age= 22}; {name= "Jane"; age= 23}] in
+  {%heml|<h1 class="title">Users</h1>
+  <ul id="list">
+  <% List.iter users ~f:(fun user -> %>
+    <li disabled><%s= user.name %> is <%i= user.age %> years old.</li>
+  <% ); %>
+  </ul>
 |}
 
 let () = Stdio.print_endline (the_output ())
