@@ -7,6 +7,7 @@
 %token GT
 %token <string> START_TAG
 %token <string * (string * Heml.attribute) list> START_TAG_WITH_ATTRS
+%token <string * (string * Heml.attribute) list> SELF_CLOSING_START_TAG_WITH_ATTRS
 %token <string> END_TAG
 %token LT
 %token <string * Heml.attribute> ATTRIBUTE
@@ -41,6 +42,14 @@ template:
         }
       else
         failwith "Invalid match"
+    }
+  | tag = SELF_CLOSING_START_TAG_WITH_ATTRS
+    {
+      let (tag_name, attrs) = tag in
+      Heml.Ast.Void_element {
+        name = tag_name;
+        attributes = attrs;
+      }
     }
   | str = STRING { let (text, sp, ep) = str in Heml.Ast.Text { text = text; loc_start = sp; loc_end = ep } }
   | strtmpl = STRING_BLOCK; PERCENTAGEGT {

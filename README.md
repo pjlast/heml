@@ -60,6 +60,8 @@ Will output the following HTML:
 
 For the most part you can just write regular HTML.
 
+However, for void elements, such as `<img>` or `<br>` that don't have a closing tag, you need to self-close the element using `/>`. They will be rendered as `<img>` and `<br>`.
+
 For HTML attributes, values can be interpolated using `{variable}`, for example `<div class={my_class}>` will output `<div class="value of my_class">`.
 
 For now, the variable needs to be a string.
@@ -112,6 +114,22 @@ let () = print_endline {%heml|<div>
 ```
 
 Arguments need to be labelled arguments, and the final argument will be the contents of the component.
+
+You can also create components that don't take content by calling them with the self-closing tag:
+
+```ocaml
+let user_list ~users =
+  {%heml|<ul id="list">
+<%= List.iter users ~f:(fun user -> %>
+  <li id={Stdlib.string_of_int user.age}>
+    <%s= user.name %> is <%i= user.age %> years old.
+  </li>
+<%= ); %>
+</ul>|}
+
+let () = let users = [{name= "John"; age= 22}; {name= "Jane"; age= 23}] in
+  {%heml|<.user_list users=users />|}
+```
 
 ## Editor support
 

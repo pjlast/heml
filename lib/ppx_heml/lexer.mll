@@ -150,6 +150,7 @@ and read_start_tag name attrs =
       read_start_tag name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
   | '>' { START_TAG_WITH_ATTRS (name, attrs) }
+  | "/>" { SELF_CLOSING_START_TAG_WITH_ATTRS (name, attrs) }
 
 and read_int_block buf sp =
     parse

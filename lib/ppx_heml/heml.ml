@@ -91,6 +91,12 @@ type attribute =
   | String of string
   | Variable of string
 
+module Void_element = struct
+  type t =
+    { name: string
+    ; attributes: (string * attribute) list }
+end
+
 module rec Element : sig
   type t =
     { name: string
@@ -114,6 +120,7 @@ and Ast : sig
     | Int_block of Int_block.t
     | Code_block of Code_block.t
     | Element of Element.t
+    | Void_element of Void_element.t
 end = struct
   type t =
     | Text of Text.t
@@ -121,6 +128,7 @@ end = struct
     | Int_block of Int_block.t
     | Code_block of Code_block.t
     | Element of Element.t
+    | Void_element of Void_element.t
 end
 
 (** An EML AST parser. The parser uses an internal Menhir incremental
@@ -167,6 +175,42 @@ module Parser = struct
     let parser = parse_string ~loc:cb.loc_start parser.parser cb.code in
     {parser}
 
+  let parse_void_element (parser : t) (el : Void_element.t) =
+    if String.contains el.name '.' then
+      let name = String.chop_prefix_if_exists el.name ~prefix:"." in
+      let command = {%string|write (%{name}|} in
+      let command =
+        List.fold el.attributes ~init:command ~f:(fun command (k, v) ->
+            match v with
+            | String v ->
+                {%string|%{command} ~%{k}:{__heml_attr|%{v}|__heml_attr}|}
+            | Variable v ->
+                {%string|%{command} ~%{k}:%{v}|} )
+      in
+      let command = command ^ ");" in
+      {parser= parse_string parser.parser command}
+    else
+      let start_tag = {%string|<%{el.name}|} in
+      let parser =
+        parse_string parser.parser
+          {%string|write {__heml_element|%{start_tag}|__heml_element};|}
+      in
+      let parser =
+        List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
+            match v with
+            | String v ->
+                parse_string parser
+                  {%string|write {__heml_attribute| %{k}="%{v}"|__heml_attribute};|}
+            | Variable v ->
+                let parser =
+                  parse_string parser
+                    {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
+                in
+                parse_string parser {%string|write (%{v} ^ "\"");|} )
+      in
+      let parser = parse_string parser "write \">\";" in
+      {parser}
+
   let rec parse_element (parser : t) (el : Element.t) =
     if String.contains el.name '.' then
       let name = String.chop_prefix_if_exists el.name ~prefix:"." in
@@ -180,7 +224,8 @@ module Parser = struct
                 {%string|%{command} ~%{k}:%{v}|} )
       in
       if List.is_empty el.contents then
-        let command = command ^ ");" in
+        (* Don't create a buffer if there are no contents. *)
+        let command = command ^ "\"\");" in
         {parser= parse_string parser.parser command}
       else
         let parser = parse_string parser.parser command in
@@ -228,4 +273,6 @@ module Parser = struct
         parse_code_block parser cb
     | Element el ->
         parse_element parser el
+    | Void_element ve ->
+        parse_void_element parser ve
 end

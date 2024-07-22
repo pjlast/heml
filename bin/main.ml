@@ -4,7 +4,7 @@ type user =
   { name: string
   ; age: int }
 
-let user_list ~users _ =
+let user_list ~users =
   {%heml|
 <ul id="list">
 <%= List.iter users ~f:(fun user -> %>
@@ -24,7 +24,8 @@ let () =
   Users
 </h1>
 
-<.user_list users={users}>
-</.user_list>
+<img src="https://avatars.githubusercontent.com/u/117582?v=4" />
+
+<.user_list users={users} />
 
 |}
