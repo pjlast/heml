@@ -1,9 +1,13 @@
+(menhir
+ (modules parser))
+
+(ocamllex lexer)
+
 (library
  (name ppx_heml)
  (kind ppx_deriver)
  (package ppx_heml)
- (flags
-  (:standard -w -27))
- (libraries ppxlib base fmt heml ppx_deriving.api serde_derive bos)
+ (modules parser lexer run heml ppx)
+ (libraries ppxlib base)
  (preprocess
   (pps ppxlib.metaquot)))

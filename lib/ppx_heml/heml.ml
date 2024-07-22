@@ -1,28 +1,6 @@
 open Base
 module I = Ocaml_common.Parser.MenhirInterpreter
 
-type string_template =
-  { str: string
-  ; loc_start: Lexing.position
-  ; loc_end: Lexing.position }
-
-type str =
-  { text: string
-  ; loc_start: Lexing.position
-  ; loc_end: Lexing.position }
-
-type code_template =
-  { code: string
-  ; contents: string_block list
-  ; next_code_template: code_template option
-  ; loc_start: Lexing.position }
-
-and string_block =
-  | Str of str
-  | Str_tmpl of string_template
-  | Int_tmpl of string_template
-  | Code_tmpl of code_template
-
 let process_token parser token start_pos end_pos =
   let parser = I.offer parser (token, start_pos, end_pos) in
   let rec aux parser =
@@ -104,16 +82,36 @@ module Code_block = struct
     ; loc_end: Lexing.position }
 end
 
+module rec Element : sig
+  type t =
+    { name: string
+    ; attributes: (string * string) list
+    ; contents: Ast.t list }
+end = struct
+  type t =
+    { name: string
+    ; attributes: (string * string) list
+    ; contents: Ast.t list }
+end
+
 (** The embedded OCaml abstract syntax tree.
     Because of the possibility of incomplete code blocks across multiple
     lines, the AST needs to be parsed by an incremental OCaml parser,
     with intermediate blocks also parsed by the same parser. *)
-module Ast = struct
+and Ast : sig
   type t =
     | Text of Text.t
     | String_block of String_block.t
     | Int_block of Int_block.t
     | Code_block of Code_block.t
+    | Element of Element.t
+end = struct
+  type t =
+    | Text of Text.t
+    | String_block of String_block.t
+    | Int_block of Int_block.t
+    | Code_block of Code_block.t
+    | Element of Element.t
 end
 
 (** An EML AST parser. The parser uses an internal Menhir incremental
@@ -163,7 +161,27 @@ module Parser = struct
     set_lexbuf_position lexbuf cb.loc_start ;
     {parser= read_until_eof parser.parser lexbuf}
 
-  let parse (parser : t) = function
+  let rec parse_element (parser : t) (el : Element.t) =
+    let start_tag = String.concat ["<"; el.name] in
+    let start_tag =
+      List.fold el.attributes ~init:start_tag ~f:(fun acc (k, v) ->
+          String.concat ~sep:" " [acc; k; "=\""; v; "\""] )
+    in
+    let start_tag = String.concat [start_tag; ">"] in
+    let lexbuf =
+      Lexing.from_string
+        ("write {__heml_element|" ^ start_tag ^ "\n|__heml_element};")
+    in
+    let parser = {parser= read_until_eof parser.parser lexbuf} in
+    let parser = List.fold el.contents ~init:parser ~f:parse in
+    let end_tag = String.concat ["</"; el.name; ">"] in
+    let lexbuf =
+      Lexing.from_string
+        ("write {__heml_element|\n" ^ end_tag ^ "\n|__heml_element};")
+    in
+    {parser= read_until_eof parser.parser lexbuf}
+
+  and parse (parser : t) = function
     | Ast.Text t ->
         parse_text parser t
     | String_block sb ->
@@ -172,4 +190,6 @@ module Parser = struct
         parse_int_block parser ib
     | Code_block cb ->
         parse_code_block parser cb
+    | Element el ->
+        parse_element parser el
 end
