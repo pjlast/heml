@@ -109,14 +109,14 @@ and read_start_tag name attrs =
   | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace*
     {
       let attribute_name = String.trim (Lexing.lexeme lexbuf) in
-      read_start_tag name ((attribute_name, "") :: attrs) lexbuf
+      read_start_tag name ((attribute_name, Heml.String ("")) :: attrs) lexbuf
     }
-  | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* [^ ' ' '"' '\'' '=' '<' '>' '`']+ whitespace*
+      | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* [^ ' ' '"' '\'' '=' '<' '>' '`' '{' '}']+ whitespace*
     {
       let attribute = String.trim (Lexing.lexeme lexbuf) in
       let attr_parts = String.split_on_char '=' attribute in
       let attribute_name = String.trim (List.hd attr_parts) in
-      let attribute_value = String.trim (List.hd (List.tl attr_parts)) in
+      let attribute_value = Heml.String (String.trim (List.hd (List.tl attr_parts))) in
       read_start_tag name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
   | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* '\'' [^ '\'' '<' '>' '`']* '\'' whitespace*
@@ -126,7 +126,7 @@ and read_start_tag name attrs =
       let attribute_name = String.trim (List.hd attr_parts) in
       let attribute_value = String.trim (List.hd (List.tl attr_parts)) in
       let val_len = String.length attribute_value in
-      let attribute_value = String.sub attribute_value 1 (val_len - 2) in
+      let attribute_value = Heml.String (String.sub attribute_value 1 (val_len - 2)) in
       read_start_tag name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
   | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* '\"' [^ '\"' '<' '>' '`']* '\"' whitespace*
@@ -136,7 +136,17 @@ and read_start_tag name attrs =
       let attribute_name = String.trim (List.hd attr_parts) in
       let attribute_value = String.trim (List.hd (List.tl attr_parts)) in
       let val_len = String.length attribute_value in
-      let attribute_value = String.sub attribute_value 1 (val_len - 2) in
+      let attribute_value = Heml.String (String.sub attribute_value 1 (val_len - 2)) in
+      read_start_tag name ((attribute_name, attribute_value) :: attrs) lexbuf
+    }
+      | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* '{' [^ '{' '}' '<' '>' '`']* '}' whitespace*
+    {
+      let attribute = String.trim (Lexing.lexeme lexbuf) in
+      let attr_parts = String.split_on_char '=' attribute in
+      let attribute_name = String.trim (List.hd attr_parts) in
+      let attribute_value = String.trim (List.hd (List.tl attr_parts)) in
+      let val_len = String.length attribute_value in
+      let attribute_value = Heml.Variable (String.sub attribute_value 1 (val_len - 2)) in
       read_start_tag name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
   | '>' { START_TAG_WITH_ATTRS (name, attrs) }

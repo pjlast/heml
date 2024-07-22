@@ -82,15 +82,19 @@ module Code_block = struct
     ; loc_end: Lexing.position }
 end
 
+type attribute =
+  | String of string
+  | Variable of string
+
 module rec Element : sig
   type t =
     { name: string
-    ; attributes: (string * string) list
+    ; attributes: (string * attribute) list
     ; contents: Ast.t list }
 end = struct
   type t =
     { name: string
-    ; attributes: (string * string) list
+    ; attributes: (string * attribute) list
     ; contents: Ast.t list }
 end
 
@@ -163,22 +167,38 @@ module Parser = struct
 
   let rec parse_element (parser : t) (el : Element.t) =
     let start_tag = String.concat ["<"; el.name] in
-    let start_tag =
-      List.fold el.attributes ~init:start_tag ~f:(fun acc (k, v) ->
-          let attr = String.concat [k; "=\""; v; "\""] in
-          String.concat ~sep:" " [acc; attr] )
-    in
-    let start_tag = String.concat [start_tag; ">"] in
     let lexbuf =
       Lexing.from_string
-        ("write {__heml_element|" ^ start_tag ^ "\n|__heml_element};")
+        ("write {__heml_element|" ^ start_tag ^ "|__heml_element};")
     in
-    let parser = {parser= read_until_eof parser.parser lexbuf} in
+    let parser = read_until_eof parser.parser lexbuf in
+    let parser =
+      List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
+          match v with
+          | String v ->
+              let lexbuf =
+                Lexing.from_string
+                  ( "write {__heml_attribute| " ^ k ^ "=\"" ^ v
+                  ^ "\"|__heml_attribute};" )
+              in
+              read_until_eof parser lexbuf
+          | Variable v ->
+              let lexbuf =
+                Lexing.from_string
+                  ( "write {__heml_attribute| " ^ k ^ "=\""
+                  ^ "|__heml_attribute};" )
+              in
+              let parser = read_until_eof parser lexbuf in
+              let lexbuf = Lexing.from_string ("write (" ^ v ^ {| ^ "\"");|}) in
+              read_until_eof parser lexbuf )
+    in
+    let lexbuf = Lexing.from_string "write \">\";" in
+    let parser = {parser= read_until_eof parser lexbuf} in
     let parser = List.fold el.contents ~init:parser ~f:parse in
     let end_tag = String.concat ["</"; el.name; ">"] in
     let lexbuf =
       Lexing.from_string
-        ("write {__heml_element|\n" ^ end_tag ^ "\n|__heml_element};")
+        ("write {__heml_element|" ^ end_tag ^ "|__heml_element};")
     in
     {parser= read_until_eof parser.parser lexbuf}
 

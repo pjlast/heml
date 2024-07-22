@@ -6,10 +6,10 @@
 %token RPAREN
 %token GT
 %token <string> START_TAG
-%token <string * (string * string) list> START_TAG_WITH_ATTRS
+%token <string * (string * Heml.attribute) list> START_TAG_WITH_ATTRS
 %token <string> END_TAG
 %token LT
-%token <string * string> ATTRIBUTE
+%token <string * Heml.attribute> ATTRIBUTE
 %token <string * Lexing.position * Lexing.position> STRING
 %token <string * Lexing.position * Lexing.position> STRING_BLOCK
 %token <string * Lexing.position * Lexing.position> INT_BLOCK
