@@ -9,6 +9,115 @@ It's a direct conversion of [Phoenix's HEEx templates](https://hexdocs.pm/phoeni
 
 A template is started using the `{%heml|... |%}` syntax.
 
+<svg fill="none" viewBox="0 0 400 400" width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml">
+      <style>
+        * {
+          font-family: monospace
+        }
+
+        body {
+          background-color: #1d2021;
+          color: #ebdbb2
+        }
+
+        .String {
+          color: #b8bb26
+        }
+
+        .Operator {
+          color: #fe8019
+        }
+
+        .GruvboxRed {
+          color: #fb4934
+        }
+
+        .GruvboxGreenBold {
+          font-weight: bold;
+          color: #b8bb26
+        }
+
+        .GruvboxYellow {
+          color: #fabd2f
+        }
+
+        .GruvboxBlue {
+          color: #83a598
+        }
+
+        .GruvboxPurple {
+          color: #d3869b
+        }
+
+        .GruvboxAqua {
+          color: #8ec07c
+        }
+
+        .GruvboxOrange {
+          color: #fe8019
+        }
+
+        .GruvboxGreen {
+          color: #b8bb26
+        }
+
+        .GruvboxFg1 {
+          color: #ebdbb2
+        }
+      </style>
+      <pre>
+				<span class="GruvboxRed">let</span>
+				<span class="GruvboxFg1">
+					<span class="GruvboxGreenBold">button</span>
+				</span>
+				<span class="GruvboxFg1">contents</span>
+				<span class="GruvboxBlue">=</span>
+				<span class="GruvboxOrange">{%</span>
+				<span class="GruvboxAqua">heml</span>|
+				<span class="GruvboxBlue">
+					<span class="GruvboxBlue">&lt;</span>
+				</span>
+				<span class="GruvboxGreen">
+					<span class="GruvboxGreen">button</span>
+				</span>
+				<span class="GruvboxBlue">
+					<span class="GruvboxBlue">&gt;</span>
+				</span>
+				<span class="GruvboxBlue">
+					<span class="GruvboxBlue">&lt;</span>
+				</span>
+				<span class="GruvboxOrange">%s</span>
+				<span class="Operator">
+					<span class="Operator">=</span>
+				</span>
+				<span class="GruvboxAqua">
+					<span class="GruvboxAqua">contents</span>
+				</span>
+				<span class="GruvboxAqua">
+					<span class="GruvboxAqua">%</span>
+				</span>
+				<span class="GruvboxBlue">
+					<span class="GruvboxBlue">&gt;</span>
+				</span>
+				<span class="GruvboxBlue">
+					<span class="GruvboxBlue">&lt;/</span>
+				</span>
+				<span class="GruvboxGreen">
+					<span class="GruvboxGreen">button</span>
+				</span>
+				<span class="GruvboxBlue">
+					<span class="GruvboxBlue">&gt;</span>
+				</span>|
+				<span class="GruvboxOrange">
+					<span class="GruvboxBlue">}</span>
+				</span>
+			</pre>
+    </div>
+  </foreignObject>
+</svg>
+
 The following program:
 
 ```ocaml
