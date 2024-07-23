@@ -149,6 +149,27 @@ let () = let users = [{name= "John"; age= 22}; {name= "Jane"; age= 23}] in
   {%heml|<.user_list users=users />|}
 ```
 
+You can also use components for layouts:
+
+```ocaml
+(* layouts.ml *)
+let layout ~title contents = {%heml|<!DOCTYPE html>
+<html>
+  <head>
+    <title><%s= title %></title>
+  </head>
+  <body>
+    <%s= contents %>
+  </body>
+</html>|}
+
+(* main.ml *)
+let () = print_endline {%heml|<Layouts.layout title="My page">
+  <h1>Home page</h1>
+  <p>Some text and stuff</p>
+</Layouts.layout>|}
+```
+
 ## Editor support
 
 Since heml is basically HEEx, you can use the [HEEx treesitter grammar](https://github.com/phoenixframework/tree-sitter-heex) for syntax highlighting.
