@@ -5,8 +5,8 @@ let expand ~ctxt eml =
   let loc = Expansion_context.Extension.extension_point_loc ctxt in
   let loc =
     { loc with
-      loc_start= {loc.loc_start with pos_cnum= loc.loc_start.pos_cnum + 6}
-    ; loc_end= {loc.loc_end with pos_cnum= loc.loc_end.pos_cnum - 2} }
+      loc_start = {loc.loc_start with pos_cnum = loc.loc_start.pos_cnum + 6}
+    ; loc_end = {loc.loc_end with pos_cnum = loc.loc_end.pos_cnum - 2} }
   in
   match Run.parse ~loc_start:loc.loc_start eml with
   | Ok processed ->
@@ -16,8 +16,7 @@ let expand ~ctxt eml =
             Eml.Parser.parse parser block )
       in
       Eml.Parser.to_parsetree parser |> Ppxlib.Parse.Of_ocaml.copy_expression
-  | _ ->
-      Location.raise_errorf ~loc "Error"
+  | _ -> Location.raise_errorf ~loc "Error"
 
 let ppx_eml_extension =
   Extension.V3.declare "eml" Extension.Context.expression

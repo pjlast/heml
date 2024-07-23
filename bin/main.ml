@@ -20,7 +20,7 @@ let button contents = {%heml|<button>
 </button>|}
 
 let () =
-  let users = [{name= "John"; age= 22}; {name= "Jane"; age= 23}] in
+  let users = [{name = "John"; age = 22}; {name = "Jane"; age = 23}] in
   let my_class = "title" in
   Stdio.print_endline
     {%heml|

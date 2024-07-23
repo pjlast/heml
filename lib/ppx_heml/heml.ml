@@ -5,33 +5,37 @@ let process_token parser token start_pos end_pos =
   let parser = I.offer parser (token, start_pos, end_pos) in
   let rec aux parser =
     match parser with
-    | I.InputNeeded _ ->
-        parser
-    | I.AboutToReduce _ | I.Shifting _ ->
+    | I.InputNeeded _ -> parser
+    | I.AboutToReduce _
+     |I.Shifting _ ->
         aux (I.resume parser)
-    | I.Rejected ->
-        failwith "Rejected"
-    | I.Accepted _ ->
-        parser
-    | I.HandlingError _ ->
-        failwith "Error"
+    | I.Rejected -> failwith "Rejected"
+    | I.Accepted _ -> parser
+    | I.HandlingError _ -> failwith "Error"
     (* aux (I.resume parser) *)
   in
   aux parser
 
 let rec read_until_eof parser lexbuf =
   match Ocaml_common.Lexer.token lexbuf with
-  | EOF ->
-      parser
+  | EOF -> parser
   | token ->
       read_until_eof
         (process_token parser token lexbuf.lex_start_p lexbuf.lex_curr_p)
         lexbuf
 
+let rec read_until_complete parser lexbuf =
+  match parser with
+  | I.Accepted res -> res
+  | _ ->
+      let token = Ocaml_common.Lexer.token lexbuf in
+      read_until_complete
+        (process_token parser token lexbuf.lex_curr_p lexbuf.lex_curr_p)
+        lexbuf
+
 (** [set_lexbuf_position lexbuf pos] sets the lexing buffer to the given
-    position.
-    This should be done before parsing the lexbuf to ensure that the resulting
-    positions are correct. *)
+    position. This should be done before parsing the lexbuf to ensure that the
+    resulting positions are correct. *)
 let set_lexbuf_position (lexbuf : Lexing.lexbuf) (pos : Lexing.position) =
   lexbuf.lex_curr_p <- pos ;
   lexbuf.lex_start_p <- pos ;
@@ -39,29 +43,32 @@ let set_lexbuf_position (lexbuf : Lexing.lexbuf) (pos : Lexing.position) =
   lexbuf.lex_last_pos <- pos.pos_cnum ;
   lexbuf.lex_last_action <- pos.pos_cnum
 
+(** [parse_string parser str] parses the given string using the given parser. If
+    an EOF is encountered, the parser stops. [?loc] sets the start position of
+    the parser. *)
 let parse_string ?loc parser str =
   let lexbuf = Lexing.from_string str in
-  (match loc with Some loc -> set_lexbuf_position lexbuf loc | None -> ()) ;
+  ( match loc with
+  | Some loc -> set_lexbuf_position lexbuf loc
+  | None -> () ) ;
   read_until_eof parser lexbuf
 
-let rec read_until_complete parser lexbuf =
-  match parser with
-  | I.Accepted res ->
-      res
-  | _ ->
-      let token = Ocaml_common.Lexer.token lexbuf in
-      read_until_complete
-        (process_token parser token lexbuf.lex_curr_p lexbuf.lex_curr_p)
-        lexbuf
+(** [parse_string_done parser str] parses the given string using the given
+    parser. If an EOF is encountered the parser consumes it and the result is
+    returned. [?loc] sets the start position of the parser. *)
+let parse_string_done ?loc parser str =
+  let lexbuf = Lexing.from_string str in
+  ( match loc with
+  | Some loc -> set_lexbuf_position lexbuf loc
+  | None -> () ) ;
+  read_until_complete parser lexbuf
 
 (** A text block represents a continuous block of plain text. *)
 module Text = struct
   type t =
-    { text: string
-          (** The text itself. *)
+    { text: string  (** The text itself. *)
     ; loc_start: Lexing.position
-          (** The starting position of the block of text in the source
-              file. *)
+          (** The starting position of the block of text in the source file. *)
     ; loc_end: Lexing.position
           (** The end position of the block of text in the source file. *) }
 end
@@ -115,10 +122,10 @@ end = struct
     ; loc_end: Lexing.position }
 end
 
-(** The embedded OCaml abstract syntax tree.
-    Because of the possibility of incomplete code blocks across multiple
-    lines, the AST needs to be parsed by an incremental OCaml parser,
-    with intermediate blocks also parsed by the same parser. *)
+(** The embedded OCaml abstract syntax tree. Because of the possibility of
+    incomplete code blocks across multiple lines, the AST needs to be parsed by
+    an incremental OCaml parser, with intermediate blocks also parsed by the
+    same parser. *)
 and Ast : sig
   type t =
     | Text of Text.t
@@ -141,24 +148,23 @@ end = struct
   exception MismatchedTags of (string * Lexing.position)
 end
 
-(** An EML AST parser. The parser uses an internal Menhir incremental
-      OCaml parser. *)
+(** An EML AST parser. The parser uses an internal Menhir incremental OCaml
+    parser. *)
 module Parser = struct
   type t = {parser: Parsetree.expression I.checkpoint}
 
-  let create ~loc_start =
+  let create ~loc_start buf_size =
     let parser = Ocaml_common.Parser.Incremental.parse_expression loc_start in
     let parser =
       parse_string parser
-        {|(let b = Buffer.create 1000 in let write = Buffer.add_string b in|}
+        {%string|(let b = Buffer.create %{buf_size#Int} in let write = Buffer.add_string b in|}
     in
     {parser}
 
   (** [to_parsetree parser] returns the resulting expression from the parser,
-        which should evaluate to a string. *)
+      which should evaluate to a string. *)
   let to_parsetree (parser : t) =
-    let lexbuf = Lexing.from_string "Buffer.contents b)" in
-    read_until_complete parser.parser lexbuf
+    parse_string_done parser.parser "Buffer.contents b)"
 
   let parse_text (parser : t) (text : Text.t) =
     let parser =
@@ -189,8 +195,9 @@ module Parser = struct
     if String.contains el.name '.' then
       let loc_start =
         if String.is_prefix el.name ~prefix:"." then
-          {el.loc_start with pos_cnum= el.loc_start.pos_cnum + 2}
-        else {el.loc_start with pos_cnum= el.loc_start.pos_cnum + 1}
+          {el.loc_start with pos_cnum = el.loc_start.pos_cnum + 2}
+        else
+          {el.loc_start with pos_cnum = el.loc_start.pos_cnum + 1}
       in
       let name = String.chop_prefix_if_exists el.name ~prefix:"." in
       let parser = parse_string ~loc:loc_start parser.parser "write (" in
@@ -206,7 +213,7 @@ module Parser = struct
                 let parser = parse_string parser {%string|~%{k}:|} in
                 parse_string ~loc:sp parser {%string|%{v}|} )
       in
-      {parser= parse_string ~loc:loc_start parser ");"}
+      {parser = parse_string ~loc:loc_start parser ");"}
     else
       let start_tag = {%string|<%{el.name}|} in
       let parser =
@@ -234,8 +241,9 @@ module Parser = struct
     if String.contains el.name '.' then
       let loc_start =
         if String.is_prefix el.name ~prefix:"." then
-          {el.loc_start with pos_cnum= el.loc_start.pos_cnum + 2}
-        else {el.loc_start with pos_cnum= el.loc_start.pos_cnum + 1}
+          {el.loc_start with pos_cnum = el.loc_start.pos_cnum + 2}
+        else
+          {el.loc_start with pos_cnum = el.loc_start.pos_cnum + 1}
       in
       let name = String.chop_prefix_if_exists el.name ~prefix:"." in
       let parser = parse_string ~loc:loc_start parser.parser "write (" in
@@ -252,14 +260,14 @@ module Parser = struct
                 parse_string ~loc:sp parser {%string|%{v}|} )
       in
       if List.is_empty el.contents then
-        {parser= parse_string ~loc:loc_start parser {|"");|}}
+        {parser = parse_string ~loc:loc_start parser {|"");|}}
       else
         let contents =
           {|(let b = Buffer.create 1000 in let write = Buffer.add_string b in|}
         in
         let parser = parse_string parser contents in
         let parser = List.fold el.contents ~init:{parser} ~f:parse in
-        {parser= parse_string parser.parser "Buffer.contents b));"}
+        {parser = parse_string parser.parser "Buffer.contents b));"}
     else
       let start_tag = {%string|<%{el.name}|} in
       let parser =
@@ -289,16 +297,10 @@ module Parser = struct
       {parser}
 
   and parse (parser : t) = function
-    | Ast.Text t ->
-        parse_text parser t
-    | String_block sb ->
-        parse_string_block parser sb
-    | Int_block ib ->
-        parse_int_block parser ib
-    | Code_block cb ->
-        parse_code_block parser cb
-    | Element el ->
-        parse_element parser el
-    | Void_element ve ->
-        parse_void_element parser ve
+    | Ast.Text t -> parse_text parser t
+    | String_block sb -> parse_string_block parser sb
+    | Int_block ib -> parse_int_block parser ib
+    | Code_block cb -> parse_code_block parser cb
+    | Element el -> parse_element parser el
+    | Void_element ve -> parse_void_element parser ve
 end

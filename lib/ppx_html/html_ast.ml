@@ -10,19 +10,22 @@ module Node = struct
     | Void_element of string * attribute list
 
   let rec to_string = function
-    | Text s ->
-        s
-    | Comment s ->
-        String.concat ~sep:"" ["<!--"; s; "-->"]
+    | Text s -> s
+    | Comment s -> String.concat ~sep:"" ["<!--"; s; "-->"]
     | Element (name, attributes, children) ->
         let attributes_string =
           List.fold ~init:""
             ~f:(fun acc (name, value) -> acc ^ " " ^ name ^ "=\"" ^ value ^ "\"")
             attributes
         in
-        "<" ^ name ^ attributes_string ^ ">"
+        "<"
+        ^ name
+        ^ attributes_string
+        ^ ">"
         ^ String.concat ~sep:"\n" (List.map ~f:to_string children)
-        ^ "</" ^ name ^ ">"
+        ^ "</"
+        ^ name
+        ^ ">"
     | Void_element (name, attributes) ->
         let attributes_string =
           List.fold ~init:""

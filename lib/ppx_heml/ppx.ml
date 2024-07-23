@@ -5,16 +5,20 @@ let expand ~ctxt heml =
   let loc = Expansion_context.Extension.extension_point_loc ctxt in
   let loc =
     { loc with
-      loc_start= {loc.loc_start with pos_cnum= loc.loc_start.pos_cnum + 6}
-    ; loc_end= {loc.loc_end with pos_cnum= loc.loc_end.pos_cnum - 2} }
+      loc_start = {loc.loc_start with pos_cnum = loc.loc_start.pos_cnum + 6}
+    ; loc_end = {loc.loc_end with pos_cnum = loc.loc_end.pos_cnum - 2} }
   in
   match Run.parse ~loc_start:loc.loc_start heml with
-  | Ok processed ->
-      let parser = Heml.Parser.create ~loc_start:loc.loc_start in
-      let parser = List.fold processed ~init:parser ~f:Heml.Parser.parse in
-      Heml.Parser.to_parsetree parser |> Ppxlib.Parse.Of_ocaml.copy_expression
+  | Ok ast_list ->
+      let buf_size = String.length heml * 2 in
+      let parser = Heml.Parser.create ~loc_start:loc.loc_start buf_size in
+
+      ast_list
+      |> List.fold ~init:parser ~f:Heml.Parser.parse
+      |> Heml.Parser.to_parsetree
+      |> Ppxlib.Parse.Of_ocaml.copy_expression
   | Error (msg, pos) ->
-      let end_loc = {loc_start= pos; loc_end= pos; loc_ghost= false} in
+      let end_loc = {loc_start = pos; loc_end = pos; loc_ghost = false} in
       Location.raise_errorf ~loc:end_loc "%s" msg
 
 let ppx_heml_extension =

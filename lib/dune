@@ -1,4 +1,3 @@
 (library
  (name heml)
- (package heml)
-)
+ (package heml))

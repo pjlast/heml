@@ -8,9 +8,9 @@ let expand ~ctxt:(_ctx : Expansion_context.Extension.t) (html : label) =
         List.map html ~f:Html_ast.Node.to_string |> String.concat ~sep:"\n"
       in
       "{__html_|" ^ output ^ "|__html_}"
-      |> Lexing.from_string |> Parse.expression
-  | _ ->
-      failwith "Error"
+      |> Lexing.from_string
+      |> Parse.expression
+  | _ -> failwith "Error"
 
 let ppx_html_extension =
   Extension.V3.declare "html" Extension.Context.expression
