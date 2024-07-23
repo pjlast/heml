@@ -13,8 +13,9 @@ let expand ~ctxt heml =
       let parser = Heml.Parser.create ~loc_start:loc.loc_start in
       let parser = List.fold processed ~init:parser ~f:Heml.Parser.parse in
       Heml.Parser.to_parsetree parser |> Ppxlib.Parse.Of_ocaml.copy_expression
-  | _ ->
-      Location.raise_errorf ~loc "Error"
+  | Error (msg, pos) ->
+      let end_loc = {loc_start= pos; loc_end= pos; loc_ghost= false} in
+      Location.raise_errorf ~loc:end_loc "%s" msg
 
 let ppx_heml_extension =
   Extension.V3.declare "heml" Extension.Context.expression

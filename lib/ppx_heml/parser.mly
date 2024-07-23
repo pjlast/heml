@@ -34,7 +34,7 @@ template:
   | start_tag = START_TAG_WITH_ATTRS; contents = list(template); end_tag_name = END_TAG
     {
       let (start_tag_name, attrs, sp, ep) = start_tag in
-      let (end_tag_name, _, _) = end_tag_name in
+      let (end_tag_name, etsp, _) = end_tag_name in
       if start_tag_name = end_tag_name then
         Heml.Ast.Element {
           name = start_tag_name;
@@ -44,7 +44,7 @@ template:
           loc_end = ep;
         }
       else
-        failwith "Invalid match"
+        raise (Heml.Ast.MismatchedTags (Printf.sprintf "Unexpected end tag %s\nHint: Did you mean %s?" end_tag_name start_tag_name, etsp))
     }
   | tag = SELF_CLOSING_START_TAG_WITH_ATTRS
     {

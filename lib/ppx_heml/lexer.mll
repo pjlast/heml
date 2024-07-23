@@ -156,6 +156,7 @@ and read_start_tag sp name attrs =
     }
   | '>' { START_TAG_WITH_ATTRS (name, attrs, sp, sp) }
   | "/>" { SELF_CLOSING_START_TAG_WITH_ATTRS (name, attrs, sp, sp) }
+  | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
 
 and read_int_block buf sp =
     parse

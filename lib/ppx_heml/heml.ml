@@ -127,6 +127,8 @@ and Ast : sig
     | Code_block of Code_block.t
     | Element of Element.t
     | Void_element of Void_element.t
+
+  exception MismatchedTags of (string * Lexing.position)
 end = struct
   type t =
     | Text of Text.t
@@ -135,6 +137,8 @@ end = struct
     | Code_block of Code_block.t
     | Element of Element.t
     | Void_element of Void_element.t
+
+  exception MismatchedTags of (string * Lexing.position)
 end
 
 (** An EML AST parser. The parser uses an internal Menhir incremental
@@ -247,7 +251,8 @@ module Parser = struct
                 let parser = parse_string parser {%string|~%{k}:|} in
                 parse_string ~loc:sp parser {%string|%{v}|} )
       in
-      if List.is_empty el.contents then {parser= parse_string ~loc:loc_start parser {|"");|}}
+      if List.is_empty el.contents then
+        {parser= parse_string ~loc:loc_start parser {|"");|}}
       else
         let contents =
           {|(let b = Buffer.create 1000 in let write = Buffer.add_string b in|}

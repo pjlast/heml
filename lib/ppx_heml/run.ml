@@ -9,11 +9,13 @@ let parse_with_error lexbuf =
   let res =
     try Ok (Parser.prog Lexer.read lexbuf) with
     | Lexer.SyntaxError msg ->
-        Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg ;
-        exit (-1)
+        Error (msg, lexbuf.lex_curr_p)
     | Parser.Error ->
-        Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf ;
-        exit (-1)
+        Error ("Syntax error", lexbuf.lex_curr_p)
+    | Heml.Ast.MismatchedTags (msg, pos) ->
+        Error (msg, pos)
+    | _ ->
+        Error ("Unknown error", lexbuf.lex_curr_p)
   in
   res
 
