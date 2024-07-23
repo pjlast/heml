@@ -5,9 +5,9 @@
 
 (library
  (name ppx_heml)
+ (public_name ppx_heml)
  (kind ppx_deriver)
- (package ppx_heml)
  (modules parser lexer run heml ppx)
  (libraries ppxlib base)
  (preprocess
-  (pps ppxlib.metaquot ppx_string)))
+  (pps ppx_string)))
