@@ -15,6 +15,10 @@ let user_list ~users =
 </ul>
 |}
 
+let button contents = {%heml|<button>
+  <%s= contents %>
+</button>|}
+
 let () =
   let users = [{name= "John"; age= 22}; {name= "Jane"; age= 23}] in
   let my_class = "title" in
@@ -27,5 +31,9 @@ let () =
 <img src="https://avatars.githubusercontent.com/u/117582?v=4" />
 
 <.user_list users={users} />
+
+<.button>
+  Click me!
+</.button>
 
 |}

@@ -89,24 +89,30 @@ end
 
 type attribute =
   | String of string
-  | Variable of string
+  | Variable of (string * Lexing.position * Lexing.position)
 
 module Void_element = struct
   type t =
     { name: string
-    ; attributes: (string * attribute) list }
+    ; attributes: (string * attribute) list
+    ; loc_start: Lexing.position
+    ; loc_end: Lexing.position }
 end
 
 module rec Element : sig
   type t =
     { name: string
     ; attributes: (string * attribute) list
-    ; contents: Ast.t list }
+    ; contents: Ast.t list
+    ; loc_start: Lexing.position
+    ; loc_end: Lexing.position }
 end = struct
   type t =
     { name: string
     ; attributes: (string * attribute) list
-    ; contents: Ast.t list }
+    ; contents: Ast.t list
+    ; loc_start: Lexing.position
+    ; loc_end: Lexing.position }
 end
 
 (** The embedded OCaml abstract syntax tree.
@@ -177,18 +183,26 @@ module Parser = struct
 
   let parse_void_element (parser : t) (el : Void_element.t) =
     if String.contains el.name '.' then
+      let loc_start =
+        if String.is_prefix el.name ~prefix:"." then
+          {el.loc_start with pos_cnum= el.loc_start.pos_cnum + 2}
+        else {el.loc_start with pos_cnum= el.loc_start.pos_cnum + 1}
+      in
       let name = String.chop_prefix_if_exists el.name ~prefix:"." in
-      let command = {%string|write (%{name}|} in
-      let command =
-        List.fold el.attributes ~init:command ~f:(fun command (k, v) ->
+      let parser = parse_string ~loc:loc_start parser.parser "write (" in
+      let parser = parse_string ~loc:loc_start parser name in
+      let parser =
+        List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
             match v with
             | String v ->
-                {%string|%{command} ~%{k}:{__heml_attr|%{v}|__heml_attr}|}
+                parse_string parser
+                  {%string|~%{k}:{__heml_attr|%{v}|__heml_attr}|}
             | Variable v ->
-                {%string|%{command} ~%{k}:%{v}|} )
+                let v, sp, _ep = v in
+                let parser = parse_string parser {%string|~%{k}:|} in
+                parse_string ~loc:sp parser {%string|%{v}|} )
       in
-      let command = command ^ ");" in
-      {parser= parse_string parser.parser command}
+      {parser= parse_string ~loc:loc_start parser ");"}
     else
       let start_tag = {%string|<%{el.name}|} in
       let parser =
@@ -206,29 +220,35 @@ module Parser = struct
                   parse_string parser
                     {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
                 in
-                parse_string parser {%string|write (%{v} ^ "\"");|} )
+                let v, sp, _ep = v in
+                parse_string ~loc:sp parser {%string|write (%{v} ^ "\"");|} )
       in
       let parser = parse_string parser "write \">\";" in
       {parser}
 
   let rec parse_element (parser : t) (el : Element.t) =
     if String.contains el.name '.' then
+      let loc_start =
+        if String.is_prefix el.name ~prefix:"." then
+          {el.loc_start with pos_cnum= el.loc_start.pos_cnum + 2}
+        else {el.loc_start with pos_cnum= el.loc_start.pos_cnum + 1}
+      in
       let name = String.chop_prefix_if_exists el.name ~prefix:"." in
-      let command = {%string|write (%{name}|} in
-      let command =
-        List.fold el.attributes ~init:command ~f:(fun command (k, v) ->
+      let parser = parse_string ~loc:loc_start parser.parser "write (" in
+      let parser = parse_string ~loc:loc_start parser name in
+      let parser =
+        List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
             match v with
             | String v ->
-                {%string|%{command} ~%{k}:{__heml_attr|%{v}|__heml_attr}|}
+                parse_string ~loc:loc_start parser
+                  {%string|~%{k}:{__heml_attr|%{v}|__heml_attr}|}
             | Variable v ->
-                {%string|%{command} ~%{k}:%{v}|} )
+                let v, sp, _ep = v in
+                let parser = parse_string parser {%string|~%{k}:|} in
+                parse_string ~loc:sp parser {%string|%{v}|} )
       in
-      if List.is_empty el.contents then
-        (* Don't create a buffer if there are no contents. *)
-        let command = command ^ "\"\");" in
-        {parser= parse_string parser.parser command}
+      if List.is_empty el.contents then {parser= parse_string ~loc:loc_start parser {|"");|}}
       else
-        let parser = parse_string parser.parser command in
         let contents =
           {|(let b = Buffer.create 1000 in let write = Buffer.add_string b in|}
         in
@@ -252,7 +272,8 @@ module Parser = struct
                   parse_string parser
                     {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
                 in
-                parse_string parser {%string|write (%{v} ^ "\"");|} )
+                let v, sp, _ep = v in
+                parse_string ~loc:sp parser {%string|write (%{v} ^ "\"");|} )
       in
       let parser = parse_string parser "write \">\";" in
       let parser = List.fold el.contents ~init:{parser} ~f:parse in

@@ -6,11 +6,11 @@
 %token RPAREN
 %token GT
 %token <string> START_TAG
-%token <string * (string * Heml.attribute) list> START_TAG_WITH_ATTRS
-%token <string * (string * Heml.attribute) list> SELF_CLOSING_START_TAG_WITH_ATTRS
-%token <string> END_TAG
+%token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> START_TAG_WITH_ATTRS
+%token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> SELF_CLOSING_START_TAG_WITH_ATTRS
+%token <string * Lexing.position * Lexing.position> END_TAG
 %token LT
-%token <string * Heml.attribute> ATTRIBUTE
+%token <string * Heml.attribute * Lexing.position * Lexing.position> ATTRIBUTE
 %token <string * Lexing.position * Lexing.position> STRING
 %token <string * Lexing.position * Lexing.position> STRING_BLOCK
 %token <string * Lexing.position * Lexing.position> INT_BLOCK
@@ -33,22 +33,27 @@ blocks:
 template:
   | start_tag = START_TAG_WITH_ATTRS; contents = list(template); end_tag_name = END_TAG
     {
-      let (start_tag_name, attrs) = start_tag in
+      let (start_tag_name, attrs, sp, ep) = start_tag in
+      let (end_tag_name, _, _) = end_tag_name in
       if start_tag_name = end_tag_name then
         Heml.Ast.Element {
           name = start_tag_name;
           attributes = attrs;
           contents = contents;
+          loc_start = sp;
+          loc_end = ep;
         }
       else
         failwith "Invalid match"
     }
   | tag = SELF_CLOSING_START_TAG_WITH_ATTRS
     {
-      let (tag_name, attrs) = tag in
+      let (tag_name, attrs, sp, ep) = tag in
       Heml.Ast.Void_element {
         name = tag_name;
         attributes = attrs;
+        loc_start = sp;
+        loc_end = ep;
       }
     }
   | str = STRING { let (text, sp, ep) = str in Heml.Ast.Text { text = text; loc_start = sp; loc_end = ep } }

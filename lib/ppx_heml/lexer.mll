@@ -59,11 +59,12 @@ parse
 | '=' { EQ }
 | "<" ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace*
   {
+    let sp = clone_pos lexbuf.Lexing.lex_start_p in
     let tag = Lexing.lexeme lexbuf in
     let len = String.length tag in
     let tag = String.sub tag 1 (len - 1) in
     let tag = String.trim tag in
-    read_start_tag tag [] lexbuf
+    read_start_tag sp tag [] lexbuf
   }
 | "</" ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace* ">"
   {
@@ -71,7 +72,8 @@ parse
     let len = String.length tag in
     let tag = String.sub tag 2 (len - 3) in
     let tag = String.trim tag in
-    END_TAG (tag)
+    let pos = clone_pos lexbuf.Lexing.lex_curr_p in
+    END_TAG (tag, pos, pos)
   }
 | eof { EOF }
 | _ { let sp = clone_pos lexbuf.Lexing.lex_curr_p in let buf = (Buffer.create 30) in Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf sp lexbuf }
@@ -104,12 +106,12 @@ and read_string_block buf sp =
       | _ -> read_string_block buf sp lexbuf
     }
 
-and read_start_tag name attrs =
+and read_start_tag sp name attrs =
   parse
   | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace*
     {
       let attribute_name = String.trim (Lexing.lexeme lexbuf) in
-      read_start_tag name ((attribute_name, Heml.String ("")) :: attrs) lexbuf
+      read_start_tag sp name ((attribute_name, Heml.String ("")) :: attrs) lexbuf
     }
       | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* [^ ' ' '"' '\'' '=' '<' '>' '`' '{' '}']+ whitespace*
     {
@@ -117,7 +119,7 @@ and read_start_tag name attrs =
       let attr_parts = String.split_on_char '=' attribute in
       let attribute_name = String.trim (List.hd attr_parts) in
       let attribute_value = Heml.String (String.trim (List.hd (List.tl attr_parts))) in
-      read_start_tag name ((attribute_name, attribute_value) :: attrs) lexbuf
+      read_start_tag sp name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
   | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* '\'' [^ '\'' '<' '>' '`']* '\'' whitespace*
     {
@@ -127,7 +129,7 @@ and read_start_tag name attrs =
       let attribute_value = String.trim (List.hd (List.tl attr_parts)) in
       let val_len = String.length attribute_value in
       let attribute_value = Heml.String (String.sub attribute_value 1 (val_len - 2)) in
-      read_start_tag name ((attribute_name, attribute_value) :: attrs) lexbuf
+      read_start_tag sp name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
   | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* '\"' [^ '\"' '<' '>' '`']* '\"' whitespace*
     {
@@ -137,20 +139,23 @@ and read_start_tag name attrs =
       let attribute_value = String.trim (List.hd (List.tl attr_parts)) in
       let val_len = String.length attribute_value in
       let attribute_value = Heml.String (String.sub attribute_value 1 (val_len - 2)) in
-      read_start_tag name ((attribute_name, attribute_value) :: attrs) lexbuf
+      read_start_tag sp name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
       | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* '{' [^ '{' '}' '<' '>' '`']* '}' whitespace*
     {
-      let attribute = String.trim (Lexing.lexeme lexbuf) in
-      let attr_parts = String.split_on_char '=' attribute in
+      let mtch = Lexing.lexeme lexbuf in
+      let attr_parts = String.split_on_char '=' mtch in
       let attribute_name = String.trim (List.hd attr_parts) in
-      let attribute_value = String.trim (List.hd (List.tl attr_parts)) in
+      let attribute_value = List.hd (List.tl attr_parts) in
+      let attr_sp = clone_pos lexbuf.Lexing.lex_curr_p in
+      let attr_sp = {attr_sp with pos_cnum = attr_sp.pos_cnum - (String.length (Base.String.lstrip attribute_value)) + 1} in
+      let attribute_value = String.trim attribute_value in
       let val_len = String.length attribute_value in
-      let attribute_value = Heml.Variable (String.sub attribute_value 1 (val_len - 2)) in
-      read_start_tag name ((attribute_name, attribute_value) :: attrs) lexbuf
+      let attribute_value = Heml.Variable (String.sub attribute_value 1 (val_len - 2), attr_sp, attr_sp) in
+      read_start_tag sp name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
-  | '>' { START_TAG_WITH_ATTRS (name, attrs) }
-  | "/>" { SELF_CLOSING_START_TAG_WITH_ATTRS (name, attrs) }
+  | '>' { START_TAG_WITH_ATTRS (name, attrs, sp, sp) }
+  | "/>" { SELF_CLOSING_START_TAG_WITH_ATTRS (name, attrs, sp, sp) }
 
 and read_int_block buf sp =
     parse
