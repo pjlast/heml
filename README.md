@@ -7,6 +7,24 @@
 
 It's a direct conversion of [Phoenix's HEEx templates](https://hexdocs.pm/phoenix_live_view/assigns-eex.html).
 
+## Install
+
+This package is not yet available on opam, so to use it you're going to have to manually pin and install it:
+
+```
+opam pin ppx_heml.dev git+https://github.com/pjlast/heml.git
+opam install ppx_heml
+```
+
+After which you can use it in your project by adding the following to your `dune` file:
+
+```
+(preprocess
+  (pps ppx_heml))
+```
+
+## Usage
+
 A template is started using the `{%heml|... |%}` syntax.
 
 The following program:
