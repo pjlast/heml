@@ -68,12 +68,14 @@ parse
   }
 | "</" ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace* ">"
   {
+    let sp = clone_pos lexbuf.Lexing.lex_curr_p in
     let tag = Lexing.lexeme lexbuf in
+    let sp = { sp with pos_cnum = sp.pos_cnum - String.length (tag) + 2 } in
     let len = String.length tag in
     let tag = String.sub tag 2 (len - 3) in
     let tag = String.trim tag in
-    let pos = clone_pos lexbuf.Lexing.lex_curr_p in
-    END_TAG (tag, pos, pos)
+    let ep = { sp with pos_cnum = sp.pos_cnum + String.length tag } in
+    END_TAG (tag, sp, ep)
   }
 | eof { EOF }
 | _ { let sp = clone_pos lexbuf.Lexing.lex_curr_p in let buf = (Buffer.create 30) in Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf sp lexbuf }

@@ -8,10 +8,12 @@ let print_position outx lexbuf =
 let parse_with_error lexbuf =
   let res =
     try Ok (Parser.prog Lexer.read lexbuf) with
-    | Lexer.SyntaxError msg -> Error (msg, lexbuf.lex_curr_p)
-    | Parser.Error -> Error ("Syntax error", lexbuf.lex_curr_p)
-    | Heml.Ast.MismatchedTags (msg, pos) -> Error (msg, pos)
-    | _ -> Error ("Unknown error", lexbuf.lex_curr_p)
+    | Lexer.SyntaxError msg -> Error (msg, lexbuf.lex_curr_p, lexbuf.lex_curr_p)
+    | Parser.Error ->
+        Error ("Syntax error", lexbuf.lex_curr_p, lexbuf.lex_curr_p)
+    | Heml.Ast.MismatchedTags (msg, startpos, endpos) ->
+        Error (msg, startpos, endpos)
+    | _ -> Error ("Unknown error", lexbuf.lex_curr_p, lexbuf.lex_curr_p)
   in
   res
 

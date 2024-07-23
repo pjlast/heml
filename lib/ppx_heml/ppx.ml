@@ -17,8 +17,10 @@ let expand ~ctxt heml =
       |> List.fold ~init:parser ~f:Heml.Parser.parse
       |> Heml.Parser.to_parsetree
       |> Ppxlib.Parse.Of_ocaml.copy_expression
-  | Error (msg, pos) ->
-      let end_loc = {loc_start = pos; loc_end = pos; loc_ghost = false} in
+  | Error (msg, startpos, endpos) ->
+      let end_loc =
+        {loc_start = startpos; loc_end = endpos; loc_ghost = false}
+      in
       Location.raise_errorf ~loc:end_loc "%s" msg
 
 let ppx_heml_extension =

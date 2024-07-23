@@ -135,7 +135,7 @@ and Ast : sig
     | Element of Element.t
     | Void_element of Void_element.t
 
-  exception MismatchedTags of (string * Lexing.position)
+  exception MismatchedTags of (string * Lexing.position * Lexing.position)
 end = struct
   type t =
     | Text of Text.t
@@ -145,7 +145,7 @@ end = struct
     | Element of Element.t
     | Void_element of Void_element.t
 
-  exception MismatchedTags of (string * Lexing.position)
+  exception MismatchedTags of (string * Lexing.position * Lexing.position)
 end
 
 (** An EML AST parser. The parser uses an internal Menhir incremental OCaml
