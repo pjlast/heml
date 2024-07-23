@@ -29,7 +29,7 @@
  (name ppx_heml)
  (synopsis "PPX for deriving HTML templates")
  (description "PPX for deriving HTML templates. Includes %heml")
- (depends ocaml dune ppxlib ppx_string)
+ (depends ocaml dune ppxlib ppx_string menhir)
  (tags
   (topics "to describe" your project)))
 
