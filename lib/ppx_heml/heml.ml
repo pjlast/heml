@@ -63,6 +63,10 @@ let parse_string_done ?loc parser str =
   | None -> () ) ;
   read_until_complete parser lexbuf
 
+module Doctype = struct
+  type t = {name: string}
+end
+
 (** A text block represents a continuous block of plain text. *)
 module Text = struct
   type t =
@@ -134,6 +138,7 @@ and Ast : sig
     | Code_block of Code_block.t
     | Element of Element.t
     | Void_element of Void_element.t
+    | Doctype of Doctype.t
 
   exception MismatchedTags of (string * Lexing.position * Lexing.position)
 end = struct
@@ -144,6 +149,7 @@ end = struct
     | Code_block of Code_block.t
     | Element of Element.t
     | Void_element of Void_element.t
+    | Doctype of Doctype.t
 
   exception MismatchedTags of (string * Lexing.position * Lexing.position)
 end
@@ -165,6 +171,13 @@ module Parser = struct
       which should evaluate to a string. *)
   let to_parsetree (parser : t) =
     parse_string_done parser.parser "Buffer.contents b)"
+
+  let parse_doctype (parser : t) (doctype : Doctype.t) =
+    let parser =
+      parse_string parser.parser
+        {%string|write "<!DOCTYPE %{doctype.name}>\n";|}
+    in
+    {parser}
 
   let parse_text (parser : t) (text : Text.t) =
     let parser =
@@ -303,4 +316,5 @@ module Parser = struct
     | Code_block cb -> parse_code_block parser cb
     | Element el -> parse_element parser el
     | Void_element ve -> parse_void_element parser ve
+    | Doctype dt -> parse_doctype parser dt
 end

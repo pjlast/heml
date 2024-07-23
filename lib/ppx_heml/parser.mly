@@ -5,6 +5,7 @@
 %token LPAREN
 %token RPAREN
 %token GT
+%token <string> DOCTYPE
 %token <string> START_TAG
 %token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> START_TAG_WITH_ATTRS
 %token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> SELF_CLOSING_START_TAG_WITH_ATTRS
@@ -31,6 +32,9 @@ blocks:
   | t = template b = blocks { t :: b }
 
 template:
+  | doctype = DOCTYPE {
+      Heml.Ast.Doctype { name = doctype }
+    }
   | start_tag = START_TAG_WITH_ATTRS; contents = list(template); end_tag_name = END_TAG
     {
       let (start_tag_name, attrs, sp, ep) = start_tag in

@@ -52,6 +52,12 @@ parse
 | "<%s=" { read_string_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | "<%i=" { read_int_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | "<%=" { read_code_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
+| "<!DOCTYPE " whitespace* ['a'-'z']+ whitespace* ">" {
+    let el = Lexing.lexeme lexbuf in
+    let el = String.sub el 9 ((String.length el) - 10) in
+    let el = String.trim el in
+    DOCTYPE el
+  }
 | '%' { PERCENTAGE }
 | "%>" { PERCENTAGEGT }
 | '>' { GT }

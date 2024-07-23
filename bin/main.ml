@@ -23,18 +23,18 @@ let () =
   let users = [{name = "John"; age = 22}; {name = "Jane"; age = 23}] in
   let my_class = "title" in
   Stdio.print_endline
-    {%heml|<Layouts.layout>
-<h1 class={my_class}>
-  Users
-</h1>
+    {%heml|
+<Layouts.layout title="My title">
+  <h1 class={my_class}>
+    Users
+  </h1>
 
-<img src="https://avatars.githubusercontent.com/u/117582?v=4" />
+  <br />
 
-<.user_list users={users} />
+  <.user_list users={users} />
 
-<.button>
-  Click me!
-  Some more text
-</.button>
+  <.button>
+    Click me!
+  </.button>
 </Layouts.layout>
 |}
