@@ -2,6 +2,7 @@
  (package heml)
  (public_name heml)
  (name main)
+ (modules main layouts)
  (libraries heml base core ppx_eml ppx_heml)
  (preprocess
   (pps ppx_heml ppx_eml)))

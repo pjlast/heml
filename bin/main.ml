@@ -23,7 +23,7 @@ let () =
   let users = [{name = "John"; age = 22}; {name = "Jane"; age = 23}] in
   let my_class = "title" in
   Stdio.print_endline
-    {%heml|
+    {%heml|<Layouts.layout>
 <h1 class={my_class}>
   Users
 </h1>
@@ -34,6 +34,7 @@ let () =
 
 <.button>
   Click me!
+  Some more text
 </.button>
-
+</Layouts.layout>
 |}
