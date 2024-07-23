@@ -58,11 +58,7 @@ parse
     let el = String.trim el in
     DOCTYPE el
   }
-| '%' { PERCENTAGE }
 | "%>" { PERCENTAGEGT }
-| '>' { GT }
-| '<' { LT }
-| '=' { EQ }
 | "<" ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace*
   {
     let sp = clone_pos lexbuf.Lexing.lex_start_p in

@@ -41,12 +41,4 @@
  (tags
   (topics "to describe" your project)))
 
-(package
- (name ppx_html)
- (synopsis "PPX for deriving embedded OCaml templates")
- (description "PPX for deriving embedded OCaml templates. Includes %eml")
- (depends ocaml dune ppxlib heml)
- (tags
-  (topics "to describe" your project)))
-
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html

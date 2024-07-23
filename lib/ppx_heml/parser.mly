@@ -1,23 +1,13 @@
 %token PERCENTAGEGT
-%token PERCENTAGE
-%token EQ
 
-%token LPAREN
-%token RPAREN
-%token GT
 %token <string> DOCTYPE
-%token <string> START_TAG
 %token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> START_TAG_WITH_ATTRS
 %token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> SELF_CLOSING_START_TAG_WITH_ATTRS
 %token <string * Lexing.position * Lexing.position> END_TAG
-%token LT
-%token <string * Heml.attribute * Lexing.position * Lexing.position> ATTRIBUTE
 %token <string * Lexing.position * Lexing.position> STRING
 %token <string * Lexing.position * Lexing.position> STRING_BLOCK
 %token <string * Lexing.position * Lexing.position> INT_BLOCK
 %token <string * Lexing.position * Lexing.position> CODE_BLOCK
-%token END
-%token BRACEEND
 %token EOF
 
 %start <Heml.Ast.t list> prog
@@ -85,8 +75,3 @@ template:
         loc_end = ep
       }
     }
-
-attribute:
-| attr = ATTRIBUTE {
-    attr
-  }

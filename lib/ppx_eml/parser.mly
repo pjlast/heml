@@ -1,13 +1,9 @@
 %token PERCENTAGE
-%token LPAREN
-%token RPAREN
 %token GT
 %token <string * Lexing.position * Lexing.position> STRING
 %token <string * Lexing.position * Lexing.position> STRING_BLOCK
 %token <string * Lexing.position * Lexing.position> INT_BLOCK
 %token <string * Lexing.position * Lexing.position> CODE_BLOCK
-%token END
-%token BRACEEND
 %token EOF
 
 %start <Eml.Ast.t list> prog
