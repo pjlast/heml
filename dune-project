@@ -34,14 +34,6 @@
   (topics "to describe" your project)))
 
 (package
- (name ppx_sheml)
- (synopsis "PPX for deriving HTML templates")
- (description "PPX for deriving HTML templates. Includes %sheml")
- (depends ocaml dune ppxlib ppx_string menhir)
- (tags
-  (topics "to describe" your project)))
-
-(package
  (name ppx_eml)
  (synopsis "PPX for deriving embedded OCaml templates")
  (description "PPX for deriving embedded OCaml templates. Includes %eml")
