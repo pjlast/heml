@@ -50,7 +50,7 @@ rule read =
 parse
 | "<!--" _* "-->" {
     let comment = Lexing.lexeme lexbuf in
-    let comment = String.sub comment 4 ((String.length comment) - 9) in
+    let comment = String.sub comment 4 ((String.length comment) - 8) in
     COMMENT comment
   }
 | '\n' { let sp = clone_pos lexbuf.Lexing.lex_curr_p in Lexing.new_line lexbuf; let ep = clone_pos lexbuf.Lexing.lex_curr_p in STRING ("\n", sp, ep) }

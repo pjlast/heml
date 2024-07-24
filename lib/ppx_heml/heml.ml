@@ -112,8 +112,8 @@ module String_block = struct
     ; loc_end: Lexing.position }
 
   let parse parser sb =
-    let parser = parse_string parser "write (Ppx_heml.Heml.html_escape " in
-    parse_string ~loc:sb.loc_start parser {%string|%{sb.field});|}
+    let parser = parse_string parser "write (Ppx_heml.Heml.html_escape (" in
+    parse_string ~loc:sb.loc_start parser {%string|%{sb.field}));|}
 end
 
 module Int_block = struct
@@ -195,7 +195,8 @@ module Void_element = struct
                     {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
                 in
                 let v, sp, _ep = v in
-                parse_string ~loc:sp parser {%string|write (%{v} ^ "\"");|} )
+                parse_string ~loc:sp parser
+                  {%string|write ((Ppx_heml.Heml.html_escape (%{v})) ^ "\"");|} )
       in
       parse_string parser "write \">\";"
 end
@@ -269,7 +270,8 @@ end = struct
                     {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
                 in
                 let v, sp, _ep = v in
-                parse_string ~loc:sp parser {%string|write (%{v} ^ "\"");|} )
+                parse_string ~loc:sp parser
+                  {%string|write ((Ppx_heml.Heml.html_escape (%{v})) ^ "\"");|} )
       in
       let parser = parse_string parser "write \">\";" in
       let parser =
