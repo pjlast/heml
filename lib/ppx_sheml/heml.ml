@@ -65,9 +65,6 @@ let parse_string_done ?loc parser str =
 
 module Doctype = struct
   type t = {name: string}
-
-  let parse parser dt =
-    parse_string parser {%string|write "<!DOCTYPE %{dt.name}>\n";|}
 end
 
 (** A text block represents a continuous block of plain text. *)
@@ -78,10 +75,6 @@ module Text = struct
           (** The starting position of the block of text in the source file. *)
     ; loc_end: Lexing.position
           (** The end position of the block of text in the source file. *) }
-
-  let parse parser txt =
-    parse_string parser
-      {%string|write {__heml_string|%{txt.text}|__heml_string};|}
 end
 
 module String_block = struct
@@ -89,10 +82,6 @@ module String_block = struct
     { field: string
     ; loc_start: Lexing.position
     ; loc_end: Lexing.position }
-
-  let parse parser sb =
-    let parser = parse_string parser "write" in
-    parse_string ~loc:sb.loc_start parser {%string|%{sb.field};|}
 end
 
 module Int_block = struct
@@ -100,10 +89,6 @@ module Int_block = struct
     { field: string
     ; loc_start: Lexing.position
     ; loc_end: Lexing.position }
-
-  let parse parser ib =
-    let parser = parse_string parser "write (Stdlib.string_of_int " in
-    parse_string ~loc:ib.loc_start parser {%string|%{ib.field});|}
 end
 
 module Code_block = struct
@@ -111,15 +96,6 @@ module Code_block = struct
     { code: string
     ; loc_start: Lexing.position
     ; loc_end: Lexing.position }
-
-  let parse parser cb = parse_string ~loc:cb.loc_start parser cb.code
-end
-
-module Comment = struct
-  type t = {text: string}
-
-  let parse parser c =
-    parse_string parser {%string|write "<!--%{c.text}-->\n";|}
 end
 
 type attribute =
@@ -132,51 +108,6 @@ module Void_element = struct
     ; attributes: (string * attribute) list
     ; loc_start: Lexing.position
     ; loc_end: Lexing.position }
-
-  let parse parser el =
-    if String.contains el.name '.' then
-      let loc_start =
-        if String.is_prefix el.name ~prefix:"." then
-          {el.loc_start with pos_cnum = el.loc_start.pos_cnum + 2}
-        else
-          {el.loc_start with pos_cnum = el.loc_start.pos_cnum + 1}
-      in
-      let name = String.chop_prefix_if_exists el.name ~prefix:"." in
-      let parser = parse_string ~loc:loc_start parser "write (" in
-      let parser = parse_string ~loc:loc_start parser name in
-      let parser =
-        List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
-            match v with
-            | String v ->
-                parse_string parser
-                  {%string|~%{k}:{__heml_attr|%{v}|__heml_attr}|}
-            | Variable v ->
-                let v, sp, _ep = v in
-                let parser = parse_string parser {%string|~%{k}:|} in
-                parse_string ~loc:sp parser {%string|%{v}|} )
-      in
-      parse_string ~loc:loc_start parser ");"
-    else
-      let start_tag = {%string|<%{el.name}|} in
-      let parser =
-        parse_string parser
-          {%string|write {__heml_element|%{start_tag}|__heml_element};|}
-      in
-      let parser =
-        List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
-            match v with
-            | String v ->
-                parse_string parser
-                  {%string|write {__heml_attribute| %{k}="%{v}"|__heml_attribute};|}
-            | Variable v ->
-                let parser =
-                  parse_string parser
-                    {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
-                in
-                let v, sp, _ep = v in
-                parse_string ~loc:sp parser {%string|write (%{v} ^ "\"");|} )
-      in
-      parse_string parser "write \">\";"
 end
 
 module rec Element : sig
@@ -186,9 +117,6 @@ module rec Element : sig
     ; contents: Ast.t list
     ; loc_start: Lexing.position
     ; loc_end: Lexing.position }
-
-  val parse :
-    Parsetree.expression I.checkpoint -> t -> Parsetree.expression I.checkpoint
 end = struct
   type t =
     { name: string
@@ -196,8 +124,87 @@ end = struct
     ; contents: Ast.t list
     ; loc_start: Lexing.position
     ; loc_end: Lexing.position }
+end
 
-  let parse parser el =
+(** The embedded OCaml abstract syntax tree. Because of the possibility of
+    incomplete code blocks across multiple lines, the AST needs to be parsed by
+    an incremental OCaml parser, with intermediate blocks also parsed by the
+    same parser. *)
+and Ast : sig
+  type t =
+    | Text of Text.t
+    | String_block of String_block.t
+    | Int_block of Int_block.t
+    | Code_block of Code_block.t
+    | Element of Element.t
+    | Void_element of Void_element.t
+    | Doctype of Doctype.t
+
+  exception MismatchedTags of (string * Lexing.position * Lexing.position)
+end = struct
+  type t =
+    | Text of Text.t
+    | String_block of String_block.t
+    | Int_block of Int_block.t
+    | Code_block of Code_block.t
+    | Element of Element.t
+    | Void_element of Void_element.t
+    | Doctype of Doctype.t
+
+  exception MismatchedTags of (string * Lexing.position * Lexing.position)
+end
+
+(** An EML AST parser. The parser uses an internal Menhir incremental OCaml
+    parser. *)
+module Parser = struct
+  type t = {parser: Parsetree.expression I.checkpoint}
+
+  let create ~loc_start buf_size =
+    let parser = Ocaml_common.Parser.Incremental.parse_expression loc_start in
+    let parser =
+      parse_string parser
+        {%string|(let b = Buffer.create %{buf_size#Int} in let write = Buffer.add_string b in|}
+    in
+    {parser}
+
+  (** [to_parsetree parser] returns the resulting expression from the parser,
+      which should evaluate to a string. *)
+  let to_parsetree (parser : t) =
+    parse_string_done parser.parser "Buffer.contents b)"
+
+  let parse_doctype (parser : t) (doctype : Doctype.t) =
+    let parser =
+      parse_string parser.parser
+        {%string|write "<!DOCTYPE %{doctype.name}>\n";|}
+    in
+    {parser}
+
+  let parse_text (parser : t) (text : Text.t) =
+    let parser =
+      parse_string parser.parser
+        {%string|write {__heml_string|%{text.text}|__heml_string};|}
+    in
+    {parser}
+
+  let parse_string_block (parser : t) (sb : String_block.t) =
+    let parser = parse_string parser.parser "write" in
+    let parser =
+      parse_string ~loc:sb.loc_start parser (String.concat [sb.field; ";"])
+    in
+    {parser}
+
+  let parse_int_block (parser : t) (ib : Int_block.t) =
+    let parser = parse_string parser.parser "write (Stdlib.string_of_int " in
+    let parser =
+      parse_string ~loc:ib.loc_start parser {%string|%{ib.field});|}
+    in
+    {parser}
+
+  let parse_code_block (parser : t) (cb : Code_block.t) =
+    let parser = parse_string ~loc:cb.loc_start parser.parser cb.code in
+    {parser}
+
+  let parse_void_element (parser : t) (el : Void_element.t) =
     if String.contains el.name '.' then
       let loc_start =
         if String.is_prefix el.name ~prefix:"." then
@@ -206,34 +213,24 @@ end = struct
           {el.loc_start with pos_cnum = el.loc_start.pos_cnum + 1}
       in
       let name = String.chop_prefix_if_exists el.name ~prefix:"." in
-      let parser = parse_string ~loc:loc_start parser "write (" in
+      let parser = parse_string ~loc:loc_start parser.parser "write (" in
       let parser = parse_string ~loc:loc_start parser name in
       let parser =
         List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
             match v with
             | String v ->
-                parse_string ~loc:loc_start parser
+                parse_string parser
                   {%string|~%{k}:{__heml_attr|%{v}|__heml_attr}|}
             | Variable v ->
                 let v, sp, _ep = v in
                 let parser = parse_string parser {%string|~%{k}:|} in
                 parse_string ~loc:sp parser {%string|%{v}|} )
       in
-      if List.is_empty el.contents then
-        parse_string ~loc:loc_start parser {|"");|}
-      else
-        let contents =
-          {|(let b = Buffer.create 1000 in let write = Buffer.add_string b in|}
-        in
-        let parser = parse_string parser contents in
-        let parser =
-          List.fold el.contents ~init:{Parser.parser} ~f:Parser.parse
-        in
-        parse_string parser.parser "Buffer.contents b));"
+      {parser = parse_string ~loc:loc_start parser ");"}
     else
       let start_tag = {%string|<%{el.name}|} in
       let parser =
-        parse_string parser
+        parse_string parser.parser
           {%string|write {__heml_element|%{start_tag}|__heml_element};|}
       in
       let parser =
@@ -251,83 +248,73 @@ end = struct
                 parse_string ~loc:sp parser {%string|write (%{v} ^ "\"");|} )
       in
       let parser = parse_string parser "write \">\";" in
-      let parser =
-        List.fold el.contents ~init:{Parser.parser} ~f:Parser.parse
+      {parser}
+
+  let rec parse_element (parser : t) (el : Element.t) =
+    if String.contains el.name '.' then
+      let loc_start =
+        if String.is_prefix el.name ~prefix:"." then
+          {el.loc_start with pos_cnum = el.loc_start.pos_cnum + 2}
+        else
+          {el.loc_start with pos_cnum = el.loc_start.pos_cnum + 1}
       in
+      let name = String.chop_prefix_if_exists el.name ~prefix:"." in
+      let parser = parse_string ~loc:loc_start parser.parser "write (" in
+      let parser = parse_string ~loc:loc_start parser name in
+      let parser =
+        List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
+            match v with
+            | String v ->
+                parse_string ~loc:loc_start parser
+                  {%string|~%{k}:{__heml_attr|%{v}|__heml_attr}|}
+            | Variable v ->
+                let v, sp, _ep = v in
+                let parser = parse_string parser {%string|~%{k}:|} in
+                parse_string ~loc:sp parser {%string|%{v}|} )
+      in
+      if List.is_empty el.contents then
+        {parser = parse_string ~loc:loc_start parser {|"");|}}
+      else
+        let contents =
+          {|(let b = Buffer.create 1000 in let write = Buffer.add_string b in|}
+        in
+        let parser = parse_string parser contents in
+        let parser = List.fold el.contents ~init:{parser} ~f:parse in
+        {parser = parse_string parser.parser "Buffer.contents b));"}
+    else
+      let start_tag = {%string|<%{el.name}|} in
+      let parser =
+        parse_string parser.parser
+          {%string|write {__heml_element|%{start_tag}|__heml_element};|}
+      in
+      let parser =
+        List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
+            match v with
+            | String v ->
+                parse_string parser
+                  {%string|write {__heml_attribute| %{k}="%{v}"|__heml_attribute};|}
+            | Variable v ->
+                let parser =
+                  parse_string parser
+                    {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
+                in
+                let v, sp, _ep = v in
+                parse_string ~loc:sp parser {%string|write (%{v} ^ "\"");|} )
+      in
+      let parser = parse_string parser "write \">\";" in
+      let parser = List.fold el.contents ~init:{parser} ~f:parse in
       let parser =
         parse_string parser.parser
           {%string|write {__heml_element|</%{el.name}>|__heml_element};|}
       in
-      parser
-end
+      {parser}
 
-(** The embedded OCaml abstract syntax tree. Because of the possibility of
-    incomplete code blocks across multiple lines, the AST needs to be parsed by
-    an incremental OCaml parser, with intermediate blocks also parsed by the
-    same parser. *)
-and Ast : sig
-  type t =
-    | Text of Text.t
-    | String_block of String_block.t
-    | Int_block of Int_block.t
-    | Code_block of Code_block.t
-    | Element of Element.t
-    | Void_element of Void_element.t
-    | Doctype of Doctype.t
-    | Comment of Comment.t
-
-  exception MismatchedTags of (string * Lexing.position * Lexing.position)
-end = struct
-  type t =
-    | Text of Text.t
-    | String_block of String_block.t
-    | Int_block of Int_block.t
-    | Code_block of Code_block.t
-    | Element of Element.t
-    | Void_element of Void_element.t
-    | Doctype of Doctype.t
-    | Comment of Comment.t
-
-  exception MismatchedTags of (string * Lexing.position * Lexing.position)
-end
-
-(** An EML AST parser. The parser uses an internal Menhir incremental OCaml
-    parser. *)
-and Parser : sig
-  type t = {parser: Parsetree.expression I.checkpoint}
-
-  val create : loc_start:Lexing.position -> int -> t
-
-  val to_parsetree : t -> Parsetree.expression
-
-  val parse : t -> Ast.t -> t
-end = struct
-  type t = {parser: Parsetree.expression I.checkpoint}
-
-  let create ~loc_start buf_size =
-    let parser = Ocaml_common.Parser.Incremental.parse_expression loc_start in
-    let parser =
-      parse_string parser
-        {%string|(let b = Buffer.create %{buf_size#Int} in let write = Buffer.add_string b in|}
-    in
-    {parser}
-
-  (** [to_parsetree parser] returns the resulting expression from the parser,
-      which should evaluate to a string. *)
-  let to_parsetree (parser : t) =
-    parse_string_done parser.parser "Buffer.contents b)"
-
-  and parse ({parser} : t) node =
-    let parser =
-      match node with
-      | Ast.Text t -> Text.parse parser t
-      | String_block sb -> String_block.parse parser sb
-      | Int_block ib -> Int_block.parse parser ib
-      | Code_block cb -> Code_block.parse parser cb
-      | Element el -> Element.parse parser el
-      | Void_element ve -> Void_element.parse parser ve
-      | Doctype dt -> Doctype.parse parser dt
-      | Comment c -> Comment.parse parser c
-    in
-    {parser}
+  and parse (parser : t) = function
+    | Ast.Text t -> parse_text parser t
+    | String_block sb -> parse_string_block parser sb
+    | Int_block ib -> parse_int_block parser ib
+    | Code_block cb -> parse_code_block parser cb
+    | Element el -> parse_element parser el
+    | Void_element ve -> parse_void_element parser ve
+    | Doctype dt -> parse_doctype parser dt
 end

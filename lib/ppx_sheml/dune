@@ -1,0 +1,13 @@
+(menhir
+ (modules parser))
+
+(ocamllex lexer)
+
+(library
+ (name ppx_sheml)
+ (public_name ppx_sheml)
+ (kind ppx_deriver)
+ (modules parser lexer run heml ppx html)
+ (libraries ppxlib base)
+ (preprocess
+  (pps ppx_string)))

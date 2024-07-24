@@ -1,6 +1,5 @@
 %token PERCENTAGEGT
 
-%token <string> COMMENT
 %token <string> DOCTYPE
 %token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> START_TAG_WITH_ATTRS
 %token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> SELF_CLOSING_START_TAG_WITH_ATTRS
@@ -25,9 +24,6 @@ blocks:
 template:
   | doctype = DOCTYPE {
       Heml.Ast.Doctype { name = doctype }
-    }
-  | comment = COMMENT {
-      Heml.Ast.Comment { text = comment }
     }
   | start_tag = START_TAG_WITH_ATTRS; contents = list(template); end_tag_name = END_TAG
     {

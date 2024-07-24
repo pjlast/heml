@@ -25,6 +25,7 @@ let () =
   Stdio.print_endline
     {%heml|
 <Layouts.layout title="My title">
+  <!-- Some comment here -->
   <h1 class={my_class}>
     Users
   </h1>
