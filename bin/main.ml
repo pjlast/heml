@@ -16,12 +16,12 @@ let user_list ~users =
 |}
 
 let button contents = {%heml|<button>
-  <%s= contents %>
+  <%raw= contents %>
 </button>|}
 
 let () =
   let users = [{name = "John"; age = 22}; {name = "Jane"; age = 23}] in
-  let my_class = "title" in
+  let my_class = "\"> Oh no" in
   Stdio.print_endline
     {%heml|
 <Layouts.layout title="My title">

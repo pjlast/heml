@@ -4,6 +4,6 @@ let layout ~title contents =
   <title><%s= title %></title>
 </head>
 <body>
-  <%s= contents %>
+  <%raw= contents %>
 </body>
 |}

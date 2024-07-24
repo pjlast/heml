@@ -7,6 +7,7 @@
 %token <string * Lexing.position * Lexing.position> END_TAG
 %token <string * Lexing.position * Lexing.position> STRING
 %token <string * Lexing.position * Lexing.position> STRING_BLOCK
+%token <string * Lexing.position * Lexing.position> RAW_BLOCK
 %token <string * Lexing.position * Lexing.position> INT_BLOCK
 %token <string * Lexing.position * Lexing.position> CODE_BLOCK
 %token EOF
@@ -58,6 +59,14 @@ template:
   | strtmpl = STRING_BLOCK; PERCENTAGEGT {
       let (s, sp, ep) = strtmpl in
       Heml.Ast.String_block {
+        field = s;
+        loc_start = sp;
+        loc_end = ep
+      }
+    }
+  | rawtmpl = RAW_BLOCK; PERCENTAGEGT {
+      let (s, sp, ep) = rawtmpl in
+      Heml.Ast.Raw_block {
         field = s;
         loc_start = sp;
         loc_end = ep

@@ -55,6 +55,7 @@ parse
   }
 | '\n' { let sp = clone_pos lexbuf.Lexing.lex_curr_p in Lexing.new_line lexbuf; let ep = clone_pos lexbuf.Lexing.lex_curr_p in STRING ("\n", sp, ep) }
 | "<%s=" { read_string_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
+| "<%raw=" { read_raw_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | "<%i=" { read_int_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | "<%=" { read_code_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | "<!DOCTYPE " whitespace* ['a'-'z']+ whitespace* ">" {
@@ -113,6 +114,19 @@ and read_string_block buf sp =
       | Some ('%', '>') -> let ep = (clone_pos lexbuf.Lexing.lex_start_p) in
         STRING_BLOCK (Buffer.contents buf, sp, ep)
       | _ -> read_string_block buf sp lexbuf
+    }
+
+and read_raw_block buf sp =
+    parse
+  | _ {
+      let c = Lexing.lexeme lexbuf in
+      if c = "\n" then
+        Lexing.new_line lexbuf;
+      Buffer.add_string buf (c);
+      match peek_next_two_chars lexbuf with
+      | Some ('%', '>') -> let ep = (clone_pos lexbuf.Lexing.lex_start_p) in
+        RAW_BLOCK (Buffer.contents buf, sp, ep)
+      | _ -> read_raw_block buf sp lexbuf
     }
 
 and read_start_tag sp name attrs =

@@ -1,6 +1,16 @@
 open Base
 module I = Ocaml_common.Parser.MenhirInterpreter
 
+let html_escape str =
+  String.concat_map str ~f:(fun char ->
+      match char with
+      | '<' -> "&lt;"
+      | '>' -> "&gt;"
+      | '&' -> "&amp;"
+      | '"' -> "&quot;"
+      | '\'' -> "&apos;"
+      | _ -> String.make 1 char )
+
 let process_token parser token start_pos end_pos =
   let parser = I.offer parser (token, start_pos, end_pos) in
   let rec aux parser =
@@ -84,7 +94,7 @@ module Text = struct
       {%string|write {__heml_string|%{txt.text}|__heml_string};|}
 end
 
-module String_block = struct
+module Raw_block = struct
   type t =
     { field: string
     ; loc_start: Lexing.position
@@ -93,6 +103,17 @@ module String_block = struct
   let parse parser sb =
     let parser = parse_string parser "write" in
     parse_string ~loc:sb.loc_start parser {%string|%{sb.field};|}
+end
+
+module String_block = struct
+  type t =
+    { field: string
+    ; loc_start: Lexing.position
+    ; loc_end: Lexing.position }
+
+  let parse parser sb =
+    let parser = parse_string parser "write (Ppx_heml.Heml.html_escape " in
+    parse_string ~loc:sb.loc_start parser {%string|%{sb.field});|}
 end
 
 module Int_block = struct
@@ -268,6 +289,7 @@ end
 and Ast : sig
   type t =
     | Text of Text.t
+    | Raw_block of Raw_block.t
     | String_block of String_block.t
     | Int_block of Int_block.t
     | Code_block of Code_block.t
@@ -280,6 +302,7 @@ and Ast : sig
 end = struct
   type t =
     | Text of Text.t
+    | Raw_block of Raw_block.t
     | String_block of String_block.t
     | Int_block of Int_block.t
     | Code_block of Code_block.t
@@ -321,6 +344,7 @@ end = struct
     let parser =
       match node with
       | Ast.Text t -> Text.parse parser t
+      | Ast.Raw_block rb -> Raw_block.parse parser rb
       | String_block sb -> String_block.parse parser sb
       | Int_block ib -> Int_block.parse parser ib
       | Code_block cb -> Code_block.parse parser cb
