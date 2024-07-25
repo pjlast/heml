@@ -1,8 +1,30 @@
 {
+open Base
 open Parser
 open Lexing
 
-exception SyntaxError of string
+exception SyntaxError of string * Lexing.position * Lexing.position
+
+(** Like Base.String.substr_index but returns a Lexing.position *)
+let substr_index_pos ?(start_pos = Lexing.dummy_pos) str ~pattern =
+  let open Lexing in
+  let strs = String.split_lines str in
+  let rec loop ~pos lines =
+    match lines with
+    | [] -> None
+    | line :: lines -> (
+      match String.substr_index line ~pattern with
+      | None ->
+          loop
+            ~pos:
+              { pos with
+                pos_cnum = pos.pos_cnum + 1 + String.length line
+              ; pos_lnum = pos.pos_lnum + 1
+              ; pos_bol = pos.pos_cnum + 1 + String.length line }
+            lines
+      | Some n -> Some {pos with pos_cnum = pos.pos_cnum + n} )
+  in
+  loop ~pos:start_pos strs
 
 let peek_next_char lexbuf =
   let pos = lexbuf.Lexing.lex_curr_pos in
@@ -48,11 +70,7 @@ let whitespace = [' ' '\t' '\r' '\n']
 
 rule read =
 parse
-| "<!--" _* "-->" {
-    let comment = Lexing.lexeme lexbuf in
-    let comment = String.sub comment 4 ((String.length comment) - 8) in
-    COMMENT comment
-  }
+| "<!--" { read_comment (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | '\n' { let sp = clone_pos lexbuf.Lexing.lex_curr_p in Lexing.new_line lexbuf; let ep = clone_pos lexbuf.Lexing.lex_curr_p in STRING ("\n", sp, ep) }
 | "<%s=" { read_string_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | "<%raw=" { read_raw_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
@@ -60,8 +78,8 @@ parse
 | "<%=" { read_code_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
 | "<!DOCTYPE " whitespace* ['a'-'z']+ whitespace* ">" {
     let el = Lexing.lexeme lexbuf in
-    let el = String.sub el 9 ((String.length el) - 10) in
-    let el = String.trim el in
+    let el = Stdlib.String.sub el 9 ((String.length el) - 10) in
+    let el = String.strip el in
     DOCTYPE el
   }
 | "%>" { PERCENTAGEGT }
@@ -70,8 +88,8 @@ parse
     let sp = clone_pos lexbuf.Lexing.lex_start_p in
     let tag = Lexing.lexeme lexbuf in
     let len = String.length tag in
-    let tag = String.sub tag 1 (len - 1) in
-    let tag = String.trim tag in
+    let tag = Stdlib.String.sub tag 1 (len - 1) in
+    let tag = String.strip tag in
     read_start_tag sp tag [] lexbuf
   }
 | "</" ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace* ">"
@@ -80,13 +98,72 @@ parse
     let tag = Lexing.lexeme lexbuf in
     let sp = { sp with pos_cnum = sp.pos_cnum - String.length (tag) + 2 } in
     let len = String.length tag in
-    let tag = String.sub tag 2 (len - 3) in
-    let tag = String.trim tag in
+    let tag = Stdlib.String.sub tag 2 (len - 3) in
+    let tag = String.strip tag in
     let ep = { sp with pos_cnum = sp.pos_cnum + String.length tag } in
     END_TAG (tag, sp, ep)
   }
 | eof { EOF }
 | _ { let sp = clone_pos lexbuf.Lexing.lex_curr_p in let buf = (Buffer.create 30) in Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf sp lexbuf }
+
+and read_comment buf sp =
+  parse
+  | "-->" {
+      let comment = Buffer.contents buf in
+
+      if String.is_prefix comment ~prefix:">" then
+        raise (SyntaxError ("Comments cannot start with >",
+          sp,
+          {sp with pos_cnum = sp.pos_cnum + 1})
+        );
+
+      if String.is_prefix comment ~prefix:"->" then
+        raise (SyntaxError ("Comments cannot start with ->",
+          sp,
+          {sp with pos_cnum = sp.pos_cnum + 2})
+        );
+
+      match substr_index_pos ~start_pos:sp comment ~pattern:"<!--" with
+      | Some pos -> raise (SyntaxError ("Comments cannot contain <!--",
+          pos,
+          {pos with pos_cnum = pos.pos_cnum + 4})
+        );
+      | None -> ();
+
+      match substr_index_pos ~start_pos:sp comment ~pattern:"-->" with
+      | Some pos -> raise (SyntaxError ("Comments cannot contain -->",
+          pos,
+          {pos with pos_cnum = pos.pos_cnum + 3})
+        );
+      | None -> ();
+
+      match substr_index_pos ~start_pos:sp comment ~pattern:"--!>" with
+      | Some pos -> raise (SyntaxError ("Comments cannot contain --!>",
+          pos,
+          {pos with pos_cnum = pos.pos_cnum + 4})
+        );
+      | None -> ();
+
+      let ep = lexbuf.Lexing.lex_curr_p in
+      if String.is_suffix comment ~suffix:"<!-" then
+        raise (SyntaxError ("Comments cannot end with <!-",
+          {ep with pos_cnum = ep.pos_cnum - 6},
+          {ep with pos_cnum = ep.pos_cnum - 3})
+        );
+
+      COMMENT comment
+    }
+  | '\n' { Lexing.new_line lexbuf; Buffer.add_char buf ('\n');
+           read_comment buf sp lexbuf
+    }
+  | _ {
+      Buffer.add_string buf (Lexing.lexeme lexbuf);
+      read_comment buf sp lexbuf
+    }
+  | eof { raise (SyntaxError ("Unterminated comment",
+        {sp with pos_cnum = sp.pos_cnum - 4},
+        sp))
+    }
 
 and read_string buf sp =
     parse
@@ -107,7 +184,7 @@ and read_string_block buf sp =
     parse
   | _ {
       let c = Lexing.lexeme lexbuf in
-      if c = "\n" then
+      if String.equal c "\n" then
         Lexing.new_line lexbuf;
       Buffer.add_string buf (c);
       match peek_next_two_chars lexbuf with
@@ -120,7 +197,7 @@ and read_raw_block buf sp =
     parse
   | _ {
       let c = Lexing.lexeme lexbuf in
-      if c = "\n" then
+      if String.equal c "\n" then
         Lexing.new_line lexbuf;
       Buffer.add_string buf (c);
       match peek_next_two_chars lexbuf with
@@ -133,59 +210,59 @@ and read_start_tag sp name attrs =
   parse
   | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace*
     {
-      let attribute_name = String.trim (Lexing.lexeme lexbuf) in
+      let attribute_name = String.strip (Lexing.lexeme lexbuf) in
       read_start_tag sp name ((attribute_name, Heml.String ("")) :: attrs) lexbuf
     }
       | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* [^ ' ' '"' '\'' '=' '<' '>' '`' '{' '}']+ whitespace*
     {
-      let attribute = String.trim (Lexing.lexeme lexbuf) in
-      let attr_parts = String.split_on_char '=' attribute in
-      let attribute_name = String.trim (List.hd attr_parts) in
-      let attribute_value = Heml.String (String.trim (List.hd (List.tl attr_parts))) in
+      let attribute = String.strip (Lexing.lexeme lexbuf) in
+      let attr_parts = Stdlib.String.split_on_char '=' attribute in
+      let attribute_name = String.strip (List.hd_exn attr_parts) in
+      let attribute_value = Heml.String (String.strip (List.hd_exn (List.tl_exn attr_parts))) in
       read_start_tag sp name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
   | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* '\'' [^ '\'' '<' '>' '`']* '\'' whitespace*
     {
-      let attribute = String.trim (Lexing.lexeme lexbuf) in
-      let attr_parts = String.split_on_char '=' attribute in
-      let attribute_name = String.trim (List.hd attr_parts) in
-      let attribute_value = String.trim (List.hd (List.tl attr_parts)) in
+      let attribute = String.strip (Lexing.lexeme lexbuf) in
+      let attr_parts = Stdlib.String.split_on_char '=' attribute in
+      let attribute_name = String.strip (List.hd_exn attr_parts) in
+      let attribute_value = String.strip (List.hd_exn (List.tl_exn attr_parts)) in
       let val_len = String.length attribute_value in
-      let attribute_value = Heml.String (String.sub attribute_value 1 (val_len - 2)) in
+      let attribute_value = Heml.String (Stdlib.String.sub attribute_value 1 (val_len - 2)) in
       read_start_tag sp name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
   | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* '\"' [^ '\"' '<' '>' '`']* '\"' whitespace*
     {
-      let attribute = String.trim (Lexing.lexeme lexbuf) in
-      let attr_parts = String.split_on_char '=' attribute in
-      let attribute_name = String.trim (List.hd attr_parts) in
-      let attribute_value = String.trim (List.hd (List.tl attr_parts)) in
+      let attribute = String.strip (Lexing.lexeme lexbuf) in
+      let attr_parts = Stdlib.String.split_on_char '=' attribute in
+      let attribute_name = String.strip (List.hd_exn attr_parts) in
+      let attribute_value = String.strip (List.hd_exn (List.tl_exn attr_parts)) in
       let val_len = String.length attribute_value in
-      let attribute_value = Heml.String (String.sub attribute_value 1 (val_len - 2)) in
+      let attribute_value = Heml.String (Stdlib.String.sub attribute_value 1 (val_len - 2)) in
       read_start_tag sp name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
       | whitespace* ['a'-'z' 'A'-'Z' '0'-'9' '-']+ whitespace* "=" whitespace* '{' [^ '{' '}' '<' '>' '`']* '}' whitespace*
     {
       let mtch = Lexing.lexeme lexbuf in
-      let attr_parts = String.split_on_char '=' mtch in
-      let attribute_name = String.trim (List.hd attr_parts) in
-      let attribute_value = List.hd (List.tl attr_parts) in
+      let attr_parts = Stdlib.String.split_on_char '=' mtch in
+      let attribute_name = String.strip (List.hd_exn attr_parts) in
+      let attribute_value = List.hd_exn (List.tl_exn attr_parts) in
       let attr_sp = clone_pos lexbuf.Lexing.lex_curr_p in
       let attr_sp = {attr_sp with pos_cnum = attr_sp.pos_cnum - (String.length (Base.String.lstrip attribute_value)) + 1} in
-      let attribute_value = String.trim attribute_value in
+      let attribute_value = String.strip attribute_value in
       let val_len = String.length attribute_value in
-      let attribute_value = Heml.Variable (String.sub attribute_value 1 (val_len - 2), attr_sp, attr_sp) in
+      let attribute_value = Heml.Variable (Stdlib.String.sub attribute_value 1 (val_len - 2), attr_sp, attr_sp) in
       read_start_tag sp name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
   | '>' { START_TAG_WITH_ATTRS (name, attrs, sp, sp) }
   | "/>" { SELF_CLOSING_START_TAG_WITH_ATTRS (name, attrs, sp, sp) }
-  | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
+  | _ { raise (SyntaxError (("Unexpected char: " ^ Lexing.lexeme lexbuf), sp, sp)) }
 
 and read_int_block buf sp =
     parse
   | _ {
       let c = Lexing.lexeme lexbuf in
-      if c = "\n" then
+      if String.equal c "\n" then
         Lexing.new_line lexbuf;
       Buffer.add_string buf (c);
       match peek_next_two_chars lexbuf with
@@ -198,7 +275,7 @@ and read_code_block buf sp =
     parse
   | _ {
       let c = Lexing.lexeme lexbuf in
-      if c = "\n" then
+      if String.equal c "\n" then
         Lexing.new_line lexbuf;
       Buffer.add_string buf (c);
       match peek_next_two_chars lexbuf with

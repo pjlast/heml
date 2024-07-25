@@ -1,5 +1,6 @@
 %token PERCENTAGEGT
 
+%token COMMENT_START COMMENT_END
 %token <string> COMMENT
 %token <string> DOCTYPE
 %token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> START_TAG_WITH_ATTRS
@@ -28,8 +29,8 @@ template:
       Heml.Ast.Doctype { name = doctype }
     }
   | comment = COMMENT {
-      Heml.Ast.Comment { text = comment }
-    }
+    Heml.Ast.Comment { text = comment }
+  }
   | start_tag = START_TAG_WITH_ATTRS; contents = list(template); end_tag_name = END_TAG
     {
       let (start_tag_name, attrs, sp, ep) = start_tag in
