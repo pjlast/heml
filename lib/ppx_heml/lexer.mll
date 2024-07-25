@@ -106,6 +106,7 @@ parse
 | eof { EOF }
 | _ { let sp = clone_pos lexbuf.Lexing.lex_curr_p in let buf = (Buffer.create 30) in Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf sp lexbuf }
 
+(* https://html.spec.whatwg.org/multipage/syntax.html#comments *)
 and read_comment buf sp =
   parse
   | "-->" {

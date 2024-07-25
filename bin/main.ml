@@ -21,7 +21,7 @@ let button contents = {%heml|<button>
 
 let () =
   let users = [{name = "John"; age = 22}; {name = "Jane"; age = 23}] in
-  let my_class = "\"> Oh no" in
+  let my_class = "testing" in
   Stdio.print_endline
     {%heml|
 <Layouts.layout title="My title">
