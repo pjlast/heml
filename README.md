@@ -7,7 +7,7 @@
 
 It's a direct conversion of [Phoenix's HEEx templates](https://hexdocs.pm/phoenix_live_view/assigns-eex.html).
 
-[![asciicast](https://asciinema.org/a/G8pCeTjpAyjtnB2k90bjmTtAi.png)](https://asciinema.org/a/G8pCeTjpAyjtnB2k90bjmTtAi)
+[![asciicast](https://asciinema.org/a/cuR8obvIQlichm5vXfaAEBCWR.png)](https://asciinema.org/a/cuR8obvIQlichm5vXfaAEBCWR)
 
 ## Install
 
