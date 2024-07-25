@@ -69,42 +69,56 @@ let new_line lexbuf =
 let whitespace = [' ' '\t' '\r' '\n']
 
 rule read =
-parse
-| "<!--" { read_comment (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
-| '\n' { let sp = clone_pos lexbuf.Lexing.lex_curr_p in Lexing.new_line lexbuf; let ep = clone_pos lexbuf.Lexing.lex_curr_p in STRING ("\n", sp, ep) }
-| "<%s=" { read_string_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
-| "<%raw=" { read_raw_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
-| "<%i=" { read_int_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
-| "<%=" { read_code_block (Buffer.create 30) (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
-| "<!DOCTYPE " whitespace* ['a'-'z']+ whitespace* ">" {
-    let el = Lexing.lexeme lexbuf in
-    let el = Stdlib.String.sub el 9 ((String.length el) - 10) in
-    let el = String.strip el in
-    DOCTYPE el
-  }
-| "%>" { PERCENTAGEGT }
-| "<" ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace*
-  {
-    let sp = clone_pos lexbuf.Lexing.lex_start_p in
-    let tag = Lexing.lexeme lexbuf in
-    let len = String.length tag in
-    let tag = Stdlib.String.sub tag 1 (len - 1) in
-    let tag = String.strip tag in
-    read_start_tag sp tag [] lexbuf
-  }
-| "</" ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace* ">"
-  {
-    let sp = clone_pos lexbuf.Lexing.lex_curr_p in
-    let tag = Lexing.lexeme lexbuf in
-    let sp = { sp with pos_cnum = sp.pos_cnum - String.length (tag) + 2 } in
-    let len = String.length tag in
-    let tag = Stdlib.String.sub tag 2 (len - 3) in
-    let tag = String.strip tag in
-    let ep = { sp with pos_cnum = sp.pos_cnum + String.length tag } in
-    END_TAG (tag, sp, ep)
-  }
-| eof { EOF }
-| _ { let sp = clone_pos lexbuf.Lexing.lex_curr_p in let buf = (Buffer.create 30) in Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf sp lexbuf }
+  parse
+  | '<' { read_open_angle (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
+  | '\n' { let sp = clone_pos lexbuf.Lexing.lex_curr_p in Lexing.new_line lexbuf; let ep = clone_pos lexbuf.Lexing.lex_curr_p in STRING ("\n", sp, ep) }
+  | "%>" { PERCENTAGEGT }
+  | eof { EOF }
+  | _ { let sp = clone_pos lexbuf.Lexing.lex_curr_p in let buf = (Buffer.create 30) in Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf sp lexbuf }
+
+and read_open_angle sp =
+  parse
+  | "!--" {
+      let sp = { sp with pos_cnum = sp.pos_cnum + 3 } in
+      read_comment (Buffer.create 30) sp lexbuf
+    }
+  | "/" ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace* ">" {
+      let tag = Lexing.lexeme lexbuf in
+      let sp = { sp with pos_cnum = sp.pos_cnum + 1 } in
+      let len = String.length tag in
+      let tag = Stdlib.String.sub tag 1 (len - 2) in
+      let tag = String.strip tag in
+      let ep = { sp with pos_cnum = sp.pos_cnum + String.length tag } in
+      END_TAG (tag, sp, ep)
+    }
+  | ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace* {
+      let sp = { sp with pos_cnum = sp.pos_cnum - 1 } in
+      let tag = Lexing.lexeme lexbuf in
+      let tag = String.strip tag in
+      read_start_tag sp tag [] lexbuf
+    }
+  | "%s=" {
+      let sp = { sp with pos_cnum = sp.pos_cnum + 3 } in
+      read_string_block (Buffer.create 30) sp lexbuf
+    }
+  | "%raw=" {
+      let sp = { sp with pos_cnum = sp.pos_cnum + 5 } in
+      read_raw_block (Buffer.create 30) sp lexbuf
+    }
+  | "%i=" {
+      let sp = { sp with pos_cnum = sp.pos_cnum + 3 } in
+      read_int_block (Buffer.create 30) sp lexbuf
+    }
+  | "%=" {
+      let sp = { sp with pos_cnum = sp.pos_cnum + 2 } in
+      read_code_block (Buffer.create 30) sp lexbuf
+    }
+  | "!DOCTYPE " whitespace* ['a'-'z']+ whitespace* ">" {
+      let el = Lexing.lexeme lexbuf in
+      let el = Stdlib.String.sub el 9 ((String.length el) - 10) in
+      let el = String.strip el in
+      DOCTYPE el
+    }
 
 (* https://html.spec.whatwg.org/multipage/syntax.html#comments *)
 and read_comment buf sp =
@@ -195,16 +209,22 @@ and read_string_block buf sp =
     }
 
 and read_raw_block buf sp =
-    parse
+  parse
+  | "%>" {
+      RAW_BLOCK (
+        Buffer.contents buf,
+        sp,
+        clone_pos lexbuf.Lexing.lex_start_p
+      )
+    }
+  | '\n' {
+      Lexing.new_line lexbuf;
+      Buffer.add_char buf '\n';
+      read_raw_block buf sp lexbuf
+    }
   | _ {
-      let c = Lexing.lexeme lexbuf in
-      if String.equal c "\n" then
-        Lexing.new_line lexbuf;
-      Buffer.add_string buf (c);
-      match peek_next_two_chars lexbuf with
-      | Some ('%', '>') -> let ep = (clone_pos lexbuf.Lexing.lex_start_p) in
-        RAW_BLOCK (Buffer.contents buf, sp, ep)
-      | _ -> read_raw_block buf sp lexbuf
+      Buffer.add_string buf (Lexing.lexeme lexbuf);
+      read_raw_block buf sp lexbuf
     }
 
 and read_start_tag sp name attrs =

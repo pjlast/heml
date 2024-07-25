@@ -195,8 +195,10 @@ module Void_element = struct
                     {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
                 in
                 let v, sp, _ep = v in
-                parse_string ~loc:sp parser
-                  {%string|write ((Ppx_heml.Heml.html_escape (%{v})) ^ "\"");|} )
+                let parser =
+                  parse_string parser "write ((Ppx_heml.Heml.html_escape ("
+                in
+                parse_string ~loc:sp parser {%string|%{v})) ^ "\"");|} )
       in
       parse_string parser "write \">\";"
 end
@@ -269,9 +271,12 @@ end = struct
                   parse_string parser
                     {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
                 in
+                let parser =
+                  parse_string parser
+                    {%string|write ((Ppx_heml.Heml.html_escape (|}
+                in
                 let v, sp, _ep = v in
-                parse_string ~loc:sp parser
-                  {%string|write ((Ppx_heml.Heml.html_escape (%{v})) ^ "\"");|} )
+                parse_string ~loc:sp parser {%string|%{v})) ^ "\"");|} )
       in
       let parser = parse_string parser "write \">\";" in
       let parser =

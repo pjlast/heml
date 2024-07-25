@@ -1,6 +1,5 @@
 %token PERCENTAGEGT
 
-%token COMMENT_START COMMENT_END
 %token <string> COMMENT
 %token <string> DOCTYPE
 %token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> START_TAG_WITH_ATTRS
@@ -65,7 +64,7 @@ template:
         loc_end = ep
       }
     }
-  | rawtmpl = RAW_BLOCK; PERCENTAGEGT {
+  | rawtmpl = RAW_BLOCK {
       let (s, sp, ep) = rawtmpl in
       Heml.Ast.Raw_block {
         field = s;
