@@ -10,7 +10,7 @@ let parse_with_error lexbuf =
     try Ok (Parser.prog Lexer.read lexbuf) with
     | Lexer.SyntaxError (msg, sp, ep) -> Error (msg, sp, ep)
     | Parser.Error ->
-        Error ("Syntax error", lexbuf.lex_curr_p, lexbuf.lex_curr_p)
+        Error ("Parser error", lexbuf.lex_curr_p, lexbuf.lex_curr_p)
     | Heml.Ast.MismatchedTags (msg, startpos, endpos) ->
         Error (msg, startpos, endpos)
     | _ -> Error ("Unknown error", lexbuf.lex_curr_p, lexbuf.lex_curr_p)

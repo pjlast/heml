@@ -1,5 +1,4 @@
-{
-open Base
+{ open Base
 open Parser
 open Lexing
 
@@ -71,10 +70,17 @@ let whitespace = [' ' '\t' '\r' '\n']
 rule read =
   parse
   | '<' { read_open_angle (clone_pos lexbuf.Lexing.lex_curr_p) lexbuf }
-  | '\n' { let sp = clone_pos lexbuf.Lexing.lex_curr_p in Lexing.new_line lexbuf; let ep = clone_pos lexbuf.Lexing.lex_curr_p in STRING ("\n", sp, ep) }
   | "%>" { PERCENTAGEGT }
+  | [^ '<'] {
+      let sp = clone_pos lexbuf.Lexing.lex_curr_p in
+      let buf = (Buffer.create 30) in
+      Buffer.add_string buf (Lexing.lexeme lexbuf);
+      read_string buf sp lexbuf
+    }
   | eof { EOF }
-  | _ { let sp = clone_pos lexbuf.Lexing.lex_curr_p in let buf = (Buffer.create 30) in Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf sp lexbuf }
+  | _ { let char = Lexing.lexeme lexbuf in
+      raise (SyntaxError (Printf.sprintf "Unexpected character %s" char, clone_pos lexbuf.Lexing.lex_start_p, clone_pos lexbuf.Lexing.lex_curr_p))
+    }
 
 and read_open_angle sp =
   parse
@@ -181,19 +187,23 @@ and read_comment buf sp =
     }
 
 and read_string buf sp =
-    parse
-  | '\n' { Lexing.new_line lexbuf; Buffer.add_char buf ('\n');
-           match peek_next_char lexbuf with
-           | None -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
-           | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
-           | _ -> read_string buf sp lexbuf
-         }
-  | [^ '<' '%' '>' '\n']* { Buffer.add_string buf (Lexing.lexeme lexbuf);
-                            match peek_next_char lexbuf with
-                            | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
-                            | _ -> read_string buf sp lexbuf
-                          }
-  | _ { STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p) }
+  parse
+  | '\n' {
+      Lexing.new_line lexbuf;
+      Buffer.add_char buf ('\n');
+      match peek_next_char lexbuf with
+      | None -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
+      | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
+      | _ -> read_string buf sp lexbuf
+    }
+  | eof { EOF }
+  | [^ '<']* {
+      Buffer.add_string buf (Lexing.lexeme lexbuf);
+      match peek_next_char lexbuf with
+      | None -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
+      | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
+      | _ -> read_string buf sp lexbuf
+    }
 
 and read_string_block buf sp =
     parse
