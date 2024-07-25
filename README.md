@@ -7,6 +7,8 @@
 
 It's a direct conversion of [Phoenix's HEEx templates](https://hexdocs.pm/phoenix_live_view/assigns-eex.html).
 
+[![asciicast](https://asciinema.org/a/G8pCeTjpAyjtnB2k90bjmTtAi.png)](https://asciinema.org/a/G8pCeTjpAyjtnB2k90bjmTtAi)
+
 ## Install
 
 This package is not yet available on opam, so to use it you're going to have to manually pin and install it:
