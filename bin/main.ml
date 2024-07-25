@@ -7,6 +7,7 @@ type user =
 let user_list ~users =
   {%heml|
 <ul id="list">
+<!-- Loop using regular OCaml code! -->
 <%= List.iter users ~f:(fun user -> %>
   <li id={Stdlib.string_of_int user.age}>
     <%s= user.name %> is <%i= user.age %> years old.
@@ -25,13 +26,14 @@ let () =
   Stdio.print_endline
     {%heml|
 <Layouts.layout title="My title">
-  <!-- Some comment here -->
+  <!-- Fully type-checked with errors displayed inline! -->
   <h1 class={my_class}>
     Users
   </h1>
 
   <br />
 
+  <!-- Call custom components from within the template! -->
   <.user_list users={users} />
 
   <.button>
