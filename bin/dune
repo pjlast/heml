@@ -1,8 +1,0 @@
-(executable
- (package heml)
- (public_name heml)
- (name main)
- (modules main layouts)
- (libraries base core)
- (preprocess
-  (pps ppx_heml)))
