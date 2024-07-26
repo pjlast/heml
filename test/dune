@@ -3,4 +3,5 @@
  (modules heml_test layouts)
  (libraries base)
  (inline_tests)
- (preprocess (pps ppx_heml ppx_inline_test)))
+ (preprocess
+  (pps ppx_heml ppx_inline_test)))

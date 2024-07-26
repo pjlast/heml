@@ -12,9 +12,9 @@ bug-reports: "https://github.com/pjlast/heml/issues"
 depends: [
   "ocaml"
   "dune" {>= "3.16"}
-  "ppxlib"
-  "ppx_string"
-  "menhir"
+  "ppxlib" {= build}
+  "ppx_string" {= build}
+  "menhir" {= build}
   "odoc" {with-doc}
 ]
 build: [
