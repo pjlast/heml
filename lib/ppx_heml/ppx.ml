@@ -16,7 +16,7 @@ let expand ~ctxt heml =
       ast_list
       |> List.fold ~init:parser ~f:Heml.Parser.parse
       |> Heml.Parser.to_parsetree
-      |> Ppxlib.Parse.Of_ocaml.copy_expression
+      |> Parse.Of_ocaml.copy_expression
   | Error (msg, startpos, endpos) ->
       let end_loc =
         {loc_start = startpos; loc_end = endpos; loc_ghost = false}
@@ -28,6 +28,6 @@ let ppx_heml_extension =
     Ast_pattern.(single_expr_payload (estring __))
     expand
 
-let rule = Ppxlib.Context_free.Rule.extension ppx_heml_extension
+let rule = Context_free.Rule.extension ppx_heml_extension
 
 let () = Driver.register_transformation ~rules:[rule] "ppx_heml"
