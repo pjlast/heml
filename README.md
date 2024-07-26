@@ -72,7 +72,9 @@ let user_list ~users =
 </ul>|}
 
 let () =
-  let users = [{name = "John"; age = 22}; {name = "Jane"; age = 23}] in
+  let users = [{name = "John"; age = 22}
+              ;{name = "Jane"; age = 23}]
+  in
   let my_class = "title" in
   let page =
     {%heml|<Layouts.layout title="Users">
