@@ -12,8 +12,10 @@ depends: [
   "ocaml"
   "dune" {>= "3.16"}
   "ppxlib"
+  "base"
   "ppx_string"
-  "menhir"
+  "menhir" {build}
+  "ppx_inline_test" {with-test}
   "odoc" {with-doc}
 ]
 build: [
