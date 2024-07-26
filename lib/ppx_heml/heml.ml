@@ -172,12 +172,12 @@ module Script_element = struct
               in
               parse_string ~loc:sp parser {%string|%{v})) ^ "\"");|} )
     in
-    let parser = parse_string parser "write \">\n\";" in
+    let parser = parse_string parser "write \">\";" in
     let parser =
       parse_string parser
         {%string|write {__heml_script|%{el.contents}|__heml_script};|}
     in
-    parse_string parser "write \"</script>\n\";"
+    parse_string parser "write \"</script>\";"
 end
 
 module Void_element = struct
