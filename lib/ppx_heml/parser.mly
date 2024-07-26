@@ -2,6 +2,7 @@
 
 %token <string> COMMENT
 %token <string> DOCTYPE
+%token <(string * Heml.attribute) list * string * Lexing.position * Lexing.position> SCRIPT_ELEMENT
 %token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> START_TAG_WITH_ATTRS
 %token <string * (string * Heml.attribute) list * Lexing.position * Lexing.position> SELF_CLOSING_START_TAG_WITH_ATTRS
 %token <string * Lexing.position * Lexing.position> END_TAG
@@ -29,6 +30,15 @@ template:
     }
   | comment = COMMENT {
     Heml.Ast.Comment { text = comment }
+  }
+  | se = SCRIPT_ELEMENT {
+    let (attributes, contents, sp, ep) = se in
+    Heml.Ast.Script_element {
+      loc_start = sp;
+      loc_end = ep;
+      contents = contents;
+      attributes = attributes;
+    }
   }
   | start_tag = START_TAG_WITH_ATTRS; contents = list(template); end_tag_name = END_TAG
     {

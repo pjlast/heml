@@ -301,9 +301,24 @@ and read_start_tag sp name attrs =
       let attribute_value = Heml.Variable (Stdlib.String.sub attribute_value 1 (val_len - 2), attr_sp, attr_sp) in
       read_start_tag sp name ((attribute_name, attribute_value) :: attrs) lexbuf
     }
-  | '>' { START_TAG_WITH_ATTRS (name, attrs, sp, sp) }
+  | '>' {
+      if String.equal name "script" then
+        read_script_block (Buffer.create 30) attrs sp lexbuf
+      else
+        START_TAG_WITH_ATTRS (name, attrs, sp, sp)
+    }
   | "/>" { SELF_CLOSING_START_TAG_WITH_ATTRS (name, attrs, sp, sp) }
   | _ { raise (SyntaxError (("Unexpected char: " ^ Lexing.lexeme lexbuf), sp, sp)) }
+
+and read_script_block buf attrs sp =
+  parse
+  | "</script>" {
+      SCRIPT_ELEMENT (attrs, Buffer.contents buf, sp, sp)
+    }
+  | _ {
+      Buffer.add_string buf (Lexing.lexeme lexbuf);
+      read_script_block buf attrs sp lexbuf
+    }
 
 and read_int_block buf sp =
     parse

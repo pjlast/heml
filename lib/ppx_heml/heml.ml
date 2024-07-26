@@ -146,6 +146,40 @@ type attribute =
   | String of string
   | Variable of (string * Lexing.position * Lexing.position)
 
+module Script_element = struct
+  type t =
+    { attributes: (string * attribute) list
+    ; loc_start: Lexing.position
+    ; loc_end: Lexing.position
+    ; contents: string }
+
+  let parse parser el =
+    let parser = parse_string parser {%string|write "<script";|} in
+    let parser =
+      List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
+          match v with
+          | String v ->
+              parse_string parser
+                {%string|write {__heml_attribute| %{k}="%{v}"|__heml_attribute};|}
+          | Variable v ->
+              let parser =
+                parse_string parser
+                  {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
+              in
+              let v, sp, _ep = v in
+              let parser =
+                parse_string parser "write ((Ppx_heml.Heml.html_escape ("
+              in
+              parse_string ~loc:sp parser {%string|%{v})) ^ "\"");|} )
+    in
+    let parser = parse_string parser "write \">\n\";" in
+    let parser =
+      parse_string parser
+        {%string|write {__heml_script|%{el.contents}|__heml_script};|}
+    in
+    parse_string parser "write \"</script>\n\";"
+end
+
 module Void_element = struct
   type t =
     { name: string
@@ -303,6 +337,7 @@ and Ast : sig
     | Void_element of Void_element.t
     | Doctype of Doctype.t
     | Comment of Comment.t
+    | Script_element of Script_element.t
 
   exception MismatchedTags of (string * Lexing.position * Lexing.position)
 end = struct
@@ -316,6 +351,7 @@ end = struct
     | Void_element of Void_element.t
     | Doctype of Doctype.t
     | Comment of Comment.t
+    | Script_element of Script_element.t
 
   exception MismatchedTags of (string * Lexing.position * Lexing.position)
 end
@@ -358,6 +394,7 @@ end = struct
       | Void_element ve -> Void_element.parse parser ve
       | Doctype dt -> Doctype.parse parser dt
       | Comment c -> Comment.parse parser c
+      | Script_element se -> Script_element.parse parser se
     in
     {parser}
 end
