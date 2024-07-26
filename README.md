@@ -121,7 +121,7 @@ You can also create re-usable components, which can be called in templates:
 ```ocaml
 let my_button ~cls contents =
   {%heml|<button class={cls}>
-  <%s= contents %>
+  <%raw= contents %>
 </button>
 |}
 
@@ -134,6 +134,8 @@ let () = print_endline {%heml|<div>
 ```
 
 Arguments need to be labelled arguments, and the final argument will be the contents of the component.
+
+Note that `contents` are rendered using the `<%raw= %>` tag. This outputs raw HTML instead of escaping the HTML first.
 
 You can also create components that don't take content by calling them with the self-closing tag:
 
@@ -161,7 +163,7 @@ let layout ~title contents = {%heml|<!DOCTYPE html>
     <title><%s= title %></title>
   </head>
   <body>
-    <%s= contents %>
+    <%raw= contents %>
   </body>
 </html>|}
 
