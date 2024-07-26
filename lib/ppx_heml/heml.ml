@@ -101,8 +101,8 @@ module Raw_block = struct
     ; loc_end: Lexing.position }
 
   let parse parser sb =
-    let parser = parse_string parser "write" in
-    parse_string ~loc:sb.loc_start parser {%string|%{sb.field};|}
+    let parser = parse_string parser "write (" in
+    parse_string ~loc:sb.loc_start parser {%string|%{sb.field});|}
 end
 
 module String_block = struct
