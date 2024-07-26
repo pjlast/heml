@@ -1,2 +1,5 @@
-(test
- (name test_heml))
+(library
+ (name test_heml)
+ (libraries base ppx_heml)
+ (inline_tests)
+ (preprocess (pps ppx_heml ppx_inline_test)))
