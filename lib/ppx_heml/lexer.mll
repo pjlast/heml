@@ -90,9 +90,8 @@ rule read =
 
 and read_open_angle sp =
   parse
-  | "!--" {
-      let sp = { sp with pos_cnum = sp.pos_cnum + 3 } in
-      read_comment (Buffer.create 30) sp lexbuf
+  | '!' {
+      read_open_angle_excl sp lexbuf
     }
   | "/" ['a'-'z' 'A'-'Z' '0'-'9' '-' '.' '_']+ whitespace* ">" {
       let tag = Lexing.lexeme lexbuf in
@@ -125,11 +124,24 @@ and read_open_angle sp =
       let sp = { sp with pos_cnum = sp.pos_cnum + 2 } in
       read_code_block (Buffer.create 30) sp lexbuf
     }
-  | "!DOCTYPE " whitespace* ['a'-'z']+ whitespace* ">" {
+
+and read_open_angle_excl sp =
+  parse
+  | "--" { (* <!-- *)
+      let sp = { sp with pos_cnum = sp.pos_cnum + 3 } in
+      read_comment (Buffer.create 30) sp lexbuf
+    }
+  | ['a'-'z' 'A'-'Z']+ whitespace* ['a'-'z']+ whitespace* ">" { (* <!doctype *)
       let el = Lexing.lexeme lexbuf in
-      let el = Stdlib.String.sub el 9 ((String.length el) - 10) in
+      if not (String.is_prefix (String.lowercase el) ~prefix:"doctype ") then
+        raise (SyntaxError ("Expected DOCTYPE", sp, lexbuf.lex_curr_p));
+
+      let el = Stdlib.String.sub el 8 ((String.length el) - 9) in
       let el = String.strip el in
       DOCTYPE el
+    }
+  | _ {
+      raise (SyntaxError ("Unexpected character", lexbuf.lex_curr_p, lexbuf.lex_curr_p))
     }
 
 (* https://html.spec.whatwg.org/multipage/syntax.html#comments *)
