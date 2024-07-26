@@ -7,6 +7,8 @@
 
 It's a direct conversion of [Phoenix's HEEx templates](https://hexdocs.pm/phoenix_live_view/assigns-eex.html).
 
+Here's a quick demo of what it looks like in Neovim:
+
 [![asciicast](https://asciinema.org/a/cuR8obvIQlichm5vXfaAEBCWR.png)](https://asciinema.org/a/cuR8obvIQlichm5vXfaAEBCWR)
 
 ## Install
@@ -27,43 +29,77 @@ After which you can use it in your project by adding the following to your `dune
 
 ## Usage
 
-A template is started using the `{%heml|... |%}` syntax.
+A template is written using the `{%heml|... |%}` syntax, which will return a string.
 
-The following program:
+Here's a quick demo program:
+
+<table>
+<tr>
+<th><code>input</code></th>
+<th><code>output</code></th>
+</tr>
+<tr>
+<td>
 
 ```ocaml
+(* bin/layouts.ml *)
+let layout ~title contents =
+  {%heml|<!DOCTYPE html>
+<head>
+  <title><%s= title %></title>
+</head>
+<body>
+  <%raw= contents %>
+</body>
+|}
+```
+
+```ocaml
+(* bin/main.ml *)
 open Base
 
 type user =
   { name: string
   ; age: int }
 
-let () =
-  let users = [{name= "John"; age= 22}; {name= "Jane"; age= 23}] in
-  let my_class = "title" in
-  Stdio.print_endline {%heml|
-<h1 class={my_class}>
-  Users
-</h1>
-
-<ul id="list">
+let user_list ~users =
+  {%heml|<ul id="list">
 <%= List.iter users ~f:(fun user -> %>
   <li id={Stdlib.string_of_int user.age}>
     <%s= user.name %> is <%i= user.age %> years old.
   </li>
 <%= ); %>
-</ul>
-|}
-```
+</ul>|}
 
-Will output the following HTML:
+let () =
+  let users = [{name = "John"; age = 22}; {name = "Jane"; age = 23}] in
+  let my_class = "title" in
+  let page =
+    {%heml|<Layouts.layout title="Users">
+  <h1 class={my_class}>
+    Users
+  </h1>
+
+  <.user_list users={users} />
+</Layouts.layout>|}
+  in
+  Stdio.print_endline page
+```
+</td>
+<td>
 
 ```html
-<h1 class="title">
-  Users
-</h1>
+<!DOCTYPE html>
+<head>
+  <title>Users</title>
+</head>
+<body>
 
-<ul id="list">
+  <h1 class="title">
+    Users
+  </h1>
+
+  <ul id="list">
 
   <li id="22">
     John is 22 years old.
@@ -74,7 +110,12 @@ Will output the following HTML:
   </li>
 
 </ul>
+
+</body>
 ```
+</td>
+</tr>
+</table>
 
 ## Syntax
 
