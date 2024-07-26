@@ -11,6 +11,12 @@ Here's a quick demo of what it looks like in Neovim:
 
 [![asciicast](https://asciinema.org/a/cuR8obvIQlichm5vXfaAEBCWR.png)](https://asciinema.org/a/cuR8obvIQlichm5vXfaAEBCWR)
 
+##### Table of Contents
+[Install](#install)
+[Usage](#usage)
+[Editor support](#editor-support)
+
+<a name="install"/>
 ## Install
 
 This package is not yet available on opam, so to use it you're going to have to manually pin and install it:
@@ -27,6 +33,7 @@ After which you can use it in your project by adding the following to your `dune
   (pps ppx_heml))
 ```
 
+<a name="usage"/>
 ## Usage
 
 A template is written using the `{%heml|... |%}` syntax, which will return a string.
@@ -117,104 +124,125 @@ let () =
 </tr>
 </table>
 
-## Syntax
+### Syntax
 
 For the most part you can just write regular HTML.
 
-However, for void elements, such as `<img>` or `<br>` that don't have a closing tag, you need to self-close the element using `/>`. They will be rendered as `<img>` and `<br>`.
-
-For HTML attributes, values can be interpolated using `{variable}`, for example `<div class={my_class}>` will output `<div class="value of my_class">`.
-
-For now, the variable needs to be a string.
-
-In the rest of the template, variables can be used using `<%s= variable %>` for strings and `<%i= variable %>` for integers.
-
-And then arbitrary OCaml code can be used using `<%= (* code *) %>`. You can open a statement in one block and close it in another. This is useful for iteration:
-
-```html
-<%= List.iter users ~f(fun user -> %>
-  <!-- Do something with user -->
-<%= ); %>
-```
-
-or conditionals:
-
-```html
-<%= if some_condition then ( %>
-  <!-- Do something conditionally -->
-<%= ); %>
-```
-
-All statements need to be unit statements (i.e. terminated with a semicolon).
-
-If you need to write to the template inside a code block, you can use `write`:
-
-```html
-<%= write "Some text" %>
-```
-
-Internally heml uses a `Buffer.t` and each statement gets translated to some form of `Buffer.add_string`, which then returns a string using `Buffer.contents` at the end of the template.
-
-### Custom components
-
-You can also create re-usable components, which can be called in templates:
+However, for void elements, such as `<img ...>` or `<br>` that don't have a closing tag, you need to self-close the element using `/>`. They will be rendered as `<img ...>` and `<br>`.
 
 ```ocaml
-let my_button ~cls contents =
-  {%heml|<button class={cls}>
-  <%raw= contents %>
-</button>
-|}
+{%heml|<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>My webpage</title>
+  </head>
+  <body>
+    <h1>Hello!</h1>
 
-let () = print_endline {%heml|<div>
-  Some content
+    <br />
 
-  <.button cls="btn-primary">Click me!</.button>
-</div>
-|}
+    <p>Welcome to my web page!</p>
+
+    <img src="https://example.com/image.png" />
+  </body>
+</html>|}
 ```
 
-Arguments need to be labelled arguments, and the final argument will be the contents of the component.
+### Using OCaml variables
 
-Note that `contents` are rendered using the `<%raw= %>` tag. This outputs raw HTML instead of escaping the HTML first.
+You can use OCaml variables directly in your templates.
 
-You can also create components that don't take content by calling them with the self-closing tag:
+#### In HTML body
+
+Variables are inserted into the HTML body using the `<%s= string_variable %>` and `<%i= int_variable %>` tags.
 
 ```ocaml
-let user_list ~users =
-  {%heml|<ul id="list">
-<%= List.iter users ~f:(fun user -> %>
-  <li id={Stdlib.string_of_int user.age}>
+let custom_button ~text = {%heml|<button><%s= text %></button>|}
+```
+
+#### In HTML tags
+
+Variables are inserted into HTML tags using the `{variable}` syntax.
+
+```ocaml
+let button_with_class ~cls = {%heml|<button class={cls}>Click me!</button>|}
+```
+
+### Using OCaml code
+
+OCaml code can be used throughout templates by using the `<%= (* code *) %>` tags. Code can be started in one tag and ended in another.
+This is useful for iteration and conditionals.
+
+```ocaml
+let render_users_if_true ~users ~should_render =
+  {%heml|<%= if should_render then (%>
+  <%= List.iter (fun user -> %>
     <%s= user.name %> is <%i= user.age %> years old.
-  </li>
+  <%= ) users; %>
 <%= ); %>
-</ul>|}
-
-let () = let users = [{name= "John"; age= 22}; {name= "Jane"; age= 23}] in
-  {%heml|<.user_list users=users />|}
 ```
 
-You can also use components for layouts:
+You'll notice that all OCaml code should be unit statements and terminated with a semicolon.
+If, for whatever reason, you want to render something withing a code block, you can use the `write` function:
+
+```ocaml
+let render_text ~text = {%heml|<%= write text; %>|}
+```
+
+### Components and layouts
+
+It's also possible to use your own components or layouts directly in the template.
+
+A component from another module can be used directly:
+
+```ocaml
+{%heml|<Components.button text="Click me!" />|}
+```
+
+But if you're using a component from the same module, you must prefix it with a `.` (otherwise we can't distinguish between normal HTML and components).
+
+```ocaml
+let button ~text = {%heml|<button><%s= text %></button>|}
+
+let () = print_endline {%heml|<.button text="Click me!" />|}
+```
+
+Components can also contain HTML, in which case you need to render the contents using the `<%raw= %>` tag.
+The `<%raw= %>` tag will render the contents as-is, without doing any HTML escaping, and assumes that the contents are safe.
+The contents are passed as the final unlabelled argument of the function.
+
+```ocaml
+let custom_div ~cls contents =
+  {%heml|<div class={cls}>
+  <%raw= contents %>
+</div>|}
+```
+
+Similarly, you can use the `<%raw= %>` to create something like a layout:
 
 ```ocaml
 (* layouts.ml *)
-let layout ~title contents = {%heml|<!DOCTYPE html>
-<html>
-  <head>
-    <title><%s= title %></title>
-  </head>
-  <body>
-    <%raw= contents %>
-  </body>
+let base_layout ~title contents = {%heml|<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title><%s= title %></title>
+  <!-- other meta tags -->
+</head>
+<body>
+  <%raw= contents %>
+</body>
 </html>|}
-
-(* main.ml *)
-let () = print_endline {%heml|<Layouts.layout title="My page">
-  <h1>Home page</h1>
-  <p>Some text and stuff</p>
-</Layouts.layout>|}
 ```
 
+```ocaml
+(* main.ml *)
+let () = print_endline {%heml|<Layouts.base_layout title="My webpage">
+  <h1>Hello!</h1>
+  <p>Welcome to my web page!</p>
+</Layouts.base_layout>|}
+```
+
+<a name="editor-support"/>
 ## Editor support
 
 Since heml is basically HEEx, you can use the [HEEx treesitter grammar](https://github.com/phoenixframework/tree-sitter-heex) for syntax highlighting.
