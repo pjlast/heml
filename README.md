@@ -21,6 +21,7 @@ Here's a quick demo of what it looks like in Neovim:
   - [Validation](#validation)
 - [Editor support](#editor-support)
   - [Neovim](#neovim)
+- [Known limitations](#known-limitations)
 
 ## Install
 
@@ -271,3 +272,7 @@ To get nice highlighting in Neovim, add a `queries/ocaml/injections.scm` file to
   (#contains? @_attid "heml")
   (#set! injection.language "heex"))
 ```
+
+## Known limitations
+
+`<script></script>` tags don't support interpolation inside of the tag (yet).
