@@ -56,19 +56,17 @@ let layout ~title contents =
 
 ```ocaml
 (* bin/main.ml *)
-open Base
-
 type user =
   { name: string
   ; age: int }
 
 let user_list ~users =
   {%heml|<ul id="list">
-<%= List.iter users ~f:(fun user -> %>
-  <li id={Stdlib.string_of_int user.age}>
+<%= List.iter (fun user -> %>
+  <li id={string_of_int user.age}>
     <%s= user.name %> is <%i= user.age %> years old.
   </li>
-<%= ); %>
+<%= ) users; %>
 </ul>|}
 
 let () =
@@ -85,7 +83,7 @@ let () =
   <.user_list users={users} />
 </Layouts.layout>|}
   in
-  Stdio.print_endline page
+  print_endline page
 ```
 </td>
 <td>
