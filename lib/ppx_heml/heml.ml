@@ -77,7 +77,7 @@ module Doctype = struct
   type t = {name: string}
 
   let parse parser dt =
-    parse_string parser {%string|write "<!DOCTYPE %{dt.name}>\n";|}
+    parse_string parser {%string|write "<!DOCTYPE %{dt.name}>";|}
 end
 
 (** A text block represents a continuous block of plain text. *)
@@ -139,8 +139,7 @@ end
 module Comment = struct
   type t = {text: string}
 
-  let parse parser c =
-    parse_string parser {%string|write "<!--%{c.text}-->\n";|}
+  let parse parser c = parse_string parser {%string|write "<!--%{c.text}-->";|}
 end
 
 type attribute =
@@ -163,7 +162,7 @@ module Void_element = struct
           {el.loc_start with pos_cnum = el.loc_start.pos_cnum + 1}
       in
       let name = String.chop_prefix_if_exists el.name ~prefix:"." in
-      let parser = parse_string ~loc:loc_start parser "write (" in
+      let parser = parse_string parser "write (" in
       let parser = parse_string ~loc:loc_start parser name in
       let parser =
         List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
@@ -176,7 +175,7 @@ module Void_element = struct
                 let parser = parse_string parser {%string|~%{k}:|} in
                 parse_string ~loc:sp parser {%string|%{v}|} )
       in
-      parse_string ~loc:loc_start parser ");"
+      parse_string parser ");"
     else
       let start_tag = {%string|<%{el.name}|} in
       let parser =
@@ -230,13 +229,13 @@ end = struct
           {el.loc_start with pos_cnum = el.loc_start.pos_cnum + 1}
       in
       let name = String.chop_prefix_if_exists el.name ~prefix:"." in
-      let parser = parse_string ~loc:loc_start parser "write (" in
+      let parser = parse_string parser "write (" in
       let parser = parse_string ~loc:loc_start parser name in
       let parser =
         List.fold el.attributes ~init:parser ~f:(fun parser (k, v) ->
             match v with
             | String v ->
-                parse_string ~loc:loc_start parser
+                parse_string parser
                   {%string|~%{k}:{__heml_attr|%{v}|__heml_attr}|}
             | Variable v ->
                 let v, sp, _ep = v in
@@ -244,7 +243,7 @@ end = struct
                 parse_string ~loc:sp parser {%string|%{v}|} )
       in
       if List.is_empty el.contents then
-        parse_string ~loc:loc_start parser {|"");|}
+        parse_string parser {|"");|}
       else
         let contents =
           {|(let b = Buffer.create 1000 in let write = Buffer.add_string b in|}
