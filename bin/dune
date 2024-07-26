@@ -3,6 +3,6 @@
  (public_name heml)
  (name main)
  (modules main layouts)
- (libraries base core ppx_eml ppx_heml)
+ (libraries base core)
  (preprocess
-  (pps ppx_heml ppx_eml)))
+  (pps ppx_heml)))

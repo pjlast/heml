@@ -1,16 +1,6 @@
 open Base
 module I = Ocaml_common.Parser.MenhirInterpreter
 
-let html_escape str =
-  String.concat_map str ~f:(fun char ->
-      match char with
-      | '<' -> "&lt;"
-      | '>' -> "&gt;"
-      | '&' -> "&amp;"
-      | '"' -> "&quot;"
-      | '\'' -> "&apos;"
-      | _ -> String.make 1 char )
-
 let process_token parser token start_pos end_pos =
   let parser = I.offer parser (token, start_pos, end_pos) in
   let rec aux parser =
@@ -112,7 +102,7 @@ module String_block = struct
     ; loc_end: Lexing.position }
 
   let parse parser sb =
-    let parser = parse_string parser "write (Ppx_heml.Heml.html_escape (" in
+    let parser = parse_string parser "write (_html_escape (" in
     parse_string ~loc:sb.loc_start parser {%string|%{sb.field}));|}
 end
 
@@ -167,9 +157,7 @@ module Script_element = struct
                   {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
               in
               let v, sp, _ep = v in
-              let parser =
-                parse_string parser "write ((Ppx_heml.Heml.html_escape ("
-              in
+              let parser = parse_string parser "write ((_html_escape (" in
               parse_string ~loc:sp parser {%string|%{v})) ^ "\"");|} )
     in
     let parser = parse_string parser "write \">\";" in
@@ -228,9 +216,7 @@ module Void_element = struct
                     {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
                 in
                 let v, sp, _ep = v in
-                let parser =
-                  parse_string parser "write ((Ppx_heml.Heml.html_escape ("
-                in
+                let parser = parse_string parser "write ((_html_escape (" in
                 parse_string ~loc:sp parser {%string|%{v})) ^ "\"");|} )
       in
       parse_string parser "write \">\";"
@@ -305,8 +291,7 @@ end = struct
                     {%string|write {__heml_attribute| %{k}="|__heml_attribute};|}
                 in
                 let parser =
-                  parse_string parser
-                    {%string|write ((Ppx_heml.Heml.html_escape (|}
+                  parse_string parser {%string|write ((_html_escape (|}
                 in
                 let v, sp, _ep = v in
                 parse_string ~loc:sp parser {%string|%{v})) ^ "\"");|} )
@@ -373,7 +358,22 @@ end = struct
     let parser = Ocaml_common.Parser.Incremental.parse_expression loc_start in
     let parser =
       parse_string parser
-        {%string|(let b = Buffer.create %{buf_size#Int} in let write = Buffer.add_string b in|}
+        {%string|(let b = Buffer.create %{buf_size#Int} in
+        let write = Buffer.add_string b in
+        let _html_escape str =
+          Stdlib.String.fold_left
+            (fun str char ->
+              str
+              ^
+              match char with
+              | '<' -> "&lt;"
+              | '>' -> "&gt;"
+              | '&' -> "&amp;"
+              | '"' -> "&quot;"
+              | '\'' -> "&apos;"
+              | _ -> String.make 1 char )
+            "" str
+        in|}
     in
     {parser}
 
