@@ -199,6 +199,7 @@ and read_string buf sp =
            | None | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
            | _ -> read_string buf sp lexbuf
          }
+  | eof { STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p) }
   | [^ '<' '%' '>' '\n']* { Buffer.add_string buf (Lexing.lexeme lexbuf);
       match peek_next_char lexbuf with
       | Some ('<') | Some ('%') | Some ('>') -> STRING (Buffer.contents buf, sp, clone_pos lexbuf.Lexing.lex_curr_p)
