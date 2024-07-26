@@ -13,8 +13,6 @@
 
 (license MIT)
 
-(documentation https://github.com/pjlast/heml)
-
 (using menhir 3.0)
 
 (package
