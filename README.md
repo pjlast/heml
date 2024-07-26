@@ -12,11 +12,10 @@ Here's a quick demo of what it looks like in Neovim:
 [![asciicast](https://asciinema.org/a/cuR8obvIQlichm5vXfaAEBCWR.png)](https://asciinema.org/a/cuR8obvIQlichm5vXfaAEBCWR)
 
 ##### Table of Contents
-[Install](#install)
-[Usage](#usage)
-[Editor support](#editor-support)
+- [Install](#install)
+- [Usage](#usage)
+- [Editor support](#editor-support)
 
-<a name="install"/>
 ## Install
 
 This package is not yet available on opam, so to use it you're going to have to manually pin and install it:
@@ -33,7 +32,6 @@ After which you can use it in your project by adding the following to your `dune
   (pps ppx_heml))
 ```
 
-<a name="usage"/>
 ## Usage
 
 A template is written using the `{%heml|... |%}` syntax, which will return a string.
@@ -242,7 +240,6 @@ let () = print_endline {%heml|<Layouts.base_layout title="My webpage">
 </Layouts.base_layout>|}
 ```
 
-<a name="editor-support"/>
 ## Editor support
 
 Since heml is basically HEEx, you can use the [HEEx treesitter grammar](https://github.com/phoenixframework/tree-sitter-heex) for syntax highlighting.
