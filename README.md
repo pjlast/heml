@@ -247,7 +247,9 @@ let () = print_endline {%heml|<Layouts.base_layout title="My webpage">
 
 ## Editor support
 
-Since heml is basically HEEx, you can use the [HEEx treesitter grammar](https://github.com/phoenixframework/tree-sitter-heex) for syntax highlighting.
+`heml` leverages the OCaml LSP for feedback directly in your editor. No special LSP or plugin is required other than the standard OCaml LSP.
+
+Since `heml` is basically HEEx, you can use the [HEEx treesitter grammar](https://github.com/phoenixframework/tree-sitter-heex) for syntax highlighting.
 
 ### Neovim
 
