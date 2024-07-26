@@ -14,7 +14,12 @@ Here's a quick demo of what it looks like in Neovim:
 ##### Table of Contents
 - [Install](#install)
 - [Usage](#usage)
+  - [Syntax](#syntax)
+  - [Using OCaml variables](#using-ocaml-variables)
+  - [Using OCaml code](#using-ocaml-code)
+  - [Components and layouts](#components-and-layouts)
 - [Editor support](#editor-support)
+  - [Neovim](#neovim)
 
 ## Install
 
