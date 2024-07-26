@@ -18,6 +18,7 @@ Here's a quick demo of what it looks like in Neovim:
   - [Using OCaml variables](#using-ocaml-variables)
   - [Using OCaml code](#using-ocaml-code)
   - [Components and layouts](#components-and-layouts)
+  - [Validation](#validation)
 - [Editor support](#editor-support)
   - [Neovim](#neovim)
 
@@ -244,6 +245,14 @@ let () = print_endline {%heml|<Layouts.base_layout title="My webpage">
   <p>Welcome to my web page!</p>
 </Layouts.base_layout>|}
 ```
+
+### Validation
+
+`heml` does basic HTML validation. It won't allow you to have mismatched start and end tags, or to have unclosed tags. It also makes sure attributes and such are formatted correctly.
+
+It does NOT do any kind of HTML element validation. I've tried to hit the sweet spot between being strict and being helpful.
+
+So `heml` will ensure that your HTML is well-formed, but it won't check that your HTML is semantically correct.
 
 ## Editor support
 
