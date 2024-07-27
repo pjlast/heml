@@ -21,6 +21,7 @@ Here's a quick demo of what it looks like in Neovim:
   - [Validation](#validation)
 - [Editor support](#editor-support)
   - [Neovim](#neovim)
+- [How it works](#how-it-works)
 - [Known limitations](#known-limitations)
 
 ## Install
@@ -272,6 +273,10 @@ To get nice highlighting in Neovim, add a `queries/ocaml/injections.scm` file to
   (#contains? @_attid "heml")
   (#set! injection.language "heex"))
 ```
+
+## How it works
+
+`ppx_heml` parses the templates into a sort-of abstract syntax tree (AST). This AST is then transformed into a series of Buffer writes, and ends with the Buffer contents being returned. I went with this approach because the arbitrary OCaml code blocks need to be compiled. This templates still need to be parsed into a valid AST, but they're immediately converted into a statement that outputs a string, as opposed to converting the AST to a string at runtime.
 
 ## Known limitations
 
